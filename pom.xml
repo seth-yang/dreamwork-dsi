@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.dreamwork.dsi</groupId>
+    <groupId>io.github.seth-yang</groupId>
     <artifactId>dreamwork-dsi-parent</artifactId>
     <version>2.0.0</version>
     <packaging>pom</packaging>
     <modules>
-        <module>../dreamwork-simple-injection</module>
-        <module>../dreamwork-dsi-dbcp</module>
-        <module>../dreamwork-dsi-embedded-httpd</module>
+        <module>modules/dreamwork-dsi-runtime</module>
+        <module>modules/dreamwork-dsi-dbcp</module>
+        <module>modules/dreamwork-dsi-embedded-httpd</module>
     </modules>
 
     <properties>
@@ -19,21 +19,7 @@
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dsi.version>2.0.0</dsi.version>
-        <upstream.url>https://maven.hothink.net.cn/repository</upstream.url>
     </properties>
-
-    <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <name>Releases</name>
-            <url>${upstream.url}/maven-releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>nexus</id>
-            <name>Snapshot</name>
-            <url>${upstream.url}/maven-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <plugins>
@@ -82,9 +68,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.dreamwork</groupId>
+            <groupId>io.github.seth-yang</groupId>
             <artifactId>dreamwork-base</artifactId>
-            <version>3.1.3</version>
+            <version>3.1.5</version>
         </dependency>
     </dependencies>
 </project>

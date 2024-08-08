@@ -1,0 +1,97 @@
+[
+    {
+        "shortOption": "c",
+        "longOption": "config",
+        "description": "path to config",
+        "requireValue": true,
+        "defaultValue": "../conf/object-context.conf"
+    },
+    {
+        "shortOption": "e",
+        "longOption": "conf-extra-dir",
+        "description": "path to extra config files",
+        "requireValue": true,
+        "defaultValue": "../conf.d",
+        "propKey": "conf.extra.dir"
+    },
+    {
+        "shortOption": "h",
+        "longOption": "help",
+        "description": "print this help list then exit.",
+        "propKey": "org.dreamwork.dsi.help"
+    },
+    {
+        "shortOption": "v",
+        "longOption": "verbose",
+        "description": "enter verbose mode",
+        "propKey": "org.dreamwork.dsi.verbose"
+    },
+    {
+        "shortOption": "V",
+        "longOption": "version",
+        "description": "print the application version then exit.",
+        "propKey": "org.dreamwork.dsi.version"
+    },
+    {
+        "longOption": "log-file",
+        "description": "the log file",
+        "requireValue": true,
+        "defaultValue": "../logs/object-context.log",
+        "propKey": "log.file"
+    },
+    {
+        "longOption": "without-logs",
+        "description": "run applications without any logs"
+    },
+    {
+        "longOption": "shutdown",
+        "description": "shutdown the application",
+        "propKey": "org.dreamwork.dsi.shutdown"
+    },
+    {
+        "longOption": "shutdown-port",
+        "requireValue": true,
+        "defaultValue": "-1",
+        "description": "The port that listens for shutdown requests. Only requests initiated locally are valid.",
+        "propKey": "org.dreamwork.dsi.shutdown-port"
+    },
+    {
+        "longOption": "log-level",
+        "description": "the log level",
+        "requireValue": true,
+        "defaultValue": "INFO",
+        "propKey": "log.level",
+        "values": [
+            {
+                "value": "TRACE",
+                "desc": "trace, same to option -v"
+            },
+            {
+                "value": "DEBUG",
+                "desc": "debug"
+            },
+            {
+                "value": "INFO",
+                "desc": "info"
+            },
+            {
+                "value": "WARN",
+                "desc": "warn"
+            },
+            {
+                "value": "ERROR",
+                "desc": "error"
+            },
+            {
+                "value": "FATAL",
+                "desc": "fatal"
+            }
+        ]
+    },
+    {
+        "longOption": "trace-prefix",
+        "description": "trace prefix",
+        "requireValue": true,
+        "propKey": "log.trace.prefix"
+    }
+]
