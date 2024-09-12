@@ -19,7 +19,7 @@ public class SessionManager {
     @AConfigured ("${dsi.embedded.httpd.session.timeout}")
     private final long timeout = 30 * 60 * 1000;
 
-    private transient boolean running = true;
+    private volatile boolean running = true;
 
     private final Object LOCKER = new byte[0];
     private final Logger logger = LoggerFactory.getLogger (SessionManager.class);

@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ShutdownHook extends Thread {
-    private transient boolean running = true;
+    private volatile boolean running = true;
 
     private final ServerSocket server;
     private final Logger logger = LoggerFactory.getLogger (ShutdownHook.class);
