@@ -106,7 +106,7 @@ public class WebMappedMethod {
                             AFormItem fi = (AFormItem) an;
                             WebParameter wp = createWebParameter (fi.type (), ParameterLocation.QueryString, fi.name (), fi.value ());
                             String dv = fi.defaultValue ();
-                            if (!StringUtil.isEmpty (dv) && "$$EMPTY$$".equals (dv)) {
+                            if (!StringUtil.isEmpty (dv) && !"$$EMPTY$$".equals (dv)) {
                                 wp.defaultValue = dv;
                             }
                         } else if (an instanceof APathVariable) {
