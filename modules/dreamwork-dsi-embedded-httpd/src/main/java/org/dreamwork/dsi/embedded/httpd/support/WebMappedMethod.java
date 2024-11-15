@@ -70,7 +70,7 @@ public class WebMappedMethod {
                                     throw new IllegalArgumentException ("property[name] of AWebParameter is missing!");
                                 }
                                 wp.name = name.trim ();
-                                if (!StringUtil.isEmpty (awp.defaultValue ())) {
+                                if (hasDefaultValue (awp)) {
                                     wp.defaultValue = awp.defaultValue ().trim ();
                                 }
                                 wp.type = awp.type ();
@@ -215,4 +215,10 @@ public class WebMappedMethod {
         }
         return parts;
     }
+
+    private boolean hasDefaultValue (AWebParameter awp) {
+        String value = awp.defaultValue ();
+        return !StringUtil.isEmpty (value) && !EMPTY_VALUE.equals (value);
+    }
+    private static final String EMPTY_VALUE = "$$EMPTY$$";
 }
