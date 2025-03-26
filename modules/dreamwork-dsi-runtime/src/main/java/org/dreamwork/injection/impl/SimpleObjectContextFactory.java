@@ -355,11 +355,13 @@ public class SimpleObjectContextFactory {
 
         AInjectionContext ic = type.getAnnotation (AInjectionContext.class);
         // 查找参数描述的 json 文件
-        InputStream in = findArgumentDefinition (loader, ic.argumentDefinition ());
-        if (in != null) try {
-            load (g, map, in);
-        } finally {
-            in.close ();
+        String[] definitions = ic.argumentDefinition ();
+        for (String definition : definitions) {
+            try (InputStream in = findArgumentDefinition (loader, definition)) {
+                if (in != null) {
+                    load (g, map, in);
+                }
+            }
         }
 
         ArgumentParser parser = new ArgumentParser (new ArrayList<> (map.values ()));

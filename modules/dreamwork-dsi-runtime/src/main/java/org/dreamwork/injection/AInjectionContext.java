@@ -58,10 +58,10 @@ public @interface AInjectionContext {
      * <p>扫描器的查找顺序：</p>
      * <ol>
      * <li>在 <strong>类路径</strong> 中搜索这个属性提供的值，若未找到</li>
-     * <li>在 <strong>类路径</strong> 中搜索 <strong>{@code cli-arguments.json}</strong>, 若未找到</li>
-     * <li>在 <strong>当前路径</strong> 下搜索 <strong>{@code ../conf/cli-arguments.json}</strong>，若未找到</li>
-     * <li>在 <strong>当前路径</strong> 中搜索 <strong>{@code cli-arguments.json}</strong>, 若未找到</li>
-     * <li>在 <strong>当前路径</strong> 中搜索 <strong>{@code ../cli-arguments.json}</strong>, 若未找到</li>
+     * <li>在 <strong>类路径</strong> 中搜索 <strong>{@code default-arguments.json}</strong>, 若未找到</li>
+     * <li>在 <strong>当前路径</strong> 下搜索 <strong>{@code ../conf/default-arguments.json}</strong>，若未找到</li>
+     * <li>在 <strong>当前路径</strong> 中搜索 <strong>{@code default-arguments.json}</strong>, 若未找到</li>
+     * <li>在 <strong>当前路径</strong> 中搜索 <strong>{@code ../default-arguments.json}</strong>, 若未找到</li>
      * </ol>
      *
      * 关于 {@code json} 文件的结构请参见 {@link org.dreamwork.cli.Argument} 类
@@ -70,7 +70,7 @@ public @interface AInjectionContext {
      * @see org.dreamwork.cli.Argument
      * @see org.dreamwork.cli.ArgumentParser
      */
-    String argumentDefinition () default "";
+    String[] argumentDefinition () default {};
 
     /**
      * 指定附加扫描的内容
