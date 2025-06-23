@@ -2,9 +2,9 @@ package org.dreamwork.dsi.embedded.httpd.starter;
 
 import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AWebSocket;
+import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
-import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.ThreadHelper;
@@ -238,17 +238,20 @@ public class WebSocketManager {
 
     /**
      * 获取指定类型的所有已经被缓存的 {@link IWebSocketExecutor} 实例
-     * @param type
-     * @return
-     * @param <T>
+     * @param type websocket的类型
+     * @return 所有指定类型的 websocket 实例的集合
+     * @param <T> ws的命令类型
      */
-    @SuppressWarnings ("all")
+    @SuppressWarnings ("unchecked")
     synchronized private<T extends IWebsocketCommand> Set<AbstractWebSocket<T>> getSockets (Class<? extends AbstractWebSocket<T>> type) {
-        Set set = cache.get (type);
-        if (set == null)
+        Set<WebsocketWrapper> wrappers = cache.get (type);
+        if (wrappers == null)
             return Collections.emptySet ();
-        Set<?> copied = new HashSet<> (set);
-        return (Set<AbstractWebSocket<T>>) copied;
+        Set<AbstractWebSocket<T>> copied = new HashSet<> (wrappers.size ());
+        for (WebsocketWrapper w : wrappers) {
+            copied.add ((AbstractWebSocket<T>) w.socket);
+        }
+        return copied;
     }
 
     private<T extends IWebsocketCommand> void notify (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
