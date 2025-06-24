@@ -14,6 +14,8 @@ import java.util.Set;
 
 /**
  * Created by game on 2017/2/16
+ *
+ * @since 2.1.0
  */
 public abstract class AbstractWebSocketScanner implements ServerApplicationConfig {
     private static final Logger logger = LoggerFactory.getLogger (AbstractWebSocketScanner.class);
@@ -70,7 +72,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
                         if (ws.cache () && ws.messageCacheTimeout () > 0) {
                             // 扫描到消息可缓存的 websocket 类型
                             @SuppressWarnings ("unchecked")
-                            Class<? extends AbstractWebSocket<?>> aws = (Class<? extends AbstractWebSocket<?>>) type;
+                            Class<? extends AbstractWebSocket<IWebsocketCommand>> aws = (Class<? extends AbstractWebSocket<IWebsocketCommand>>) type;
                             WebSocketManager.enableCache (aws, ws.messageCacheTimeout ());
                         }
                     }

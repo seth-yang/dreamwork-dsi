@@ -9,6 +9,8 @@ import java.io.IOException;
 
 /**
  * Created by game on 2017/2/16
+ *
+ * @since 2.1.0
  */
 public interface IWebSocketExecutor<T extends IWebsocketCommand> {
     /**

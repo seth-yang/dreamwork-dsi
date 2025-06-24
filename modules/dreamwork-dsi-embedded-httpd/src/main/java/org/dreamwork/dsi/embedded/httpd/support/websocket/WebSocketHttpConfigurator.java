@@ -15,6 +15,8 @@ import java.util.Map;
 
 /**
  * Created by game on 2017/3/4
+ *
+ * @since 2.1.0
  */
 public class WebSocketHttpConfigurator extends ServerEndpointConfig.Configurator {
     private static final Logger logger = LoggerFactory.getLogger (WebSocketHttpConfigurator.class);

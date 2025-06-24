@@ -15,6 +15,8 @@ import java.util.Map;
 
 /**
  * Created by game on 2017/2/16
+ *
+ * @since 2.1.0
  */
 public abstract class AbstractWebSocket<T extends IWebsocketCommand>
         extends Endpoint
@@ -83,26 +85,35 @@ public abstract class AbstractWebSocket<T extends IWebsocketCommand>
             this.session.close ();
         } catch (Exception ex) {
             logger.warn (ex.getMessage (), ex);
+        } finally {
+            onDisconnected (reason);
+            this.session = null;
         }
-        this.session = null;
+    }
 
-        onDisconnected (reason);
+    @Override
+    public void onError (Throwable error) {
+        logger.warn (error.getMessage (), error);
     }
 
     @Override
     public final void send (T message) {
-        String text = null;
-        try {
-            text = cast (message);
-            session.getBasicRemote ().sendText (text);
-            onMessageSent (message);
-            if (logger.isTraceEnabled ()) {
-                logger.trace ("message send: {}", text);
+        if (session == null || session.getBasicRemote () == null || !session.isOpen ()) {
+            logger.warn ("the websocket session was closed. ignore this require");
+        } else {
+            String text = null;
+            try {
+                text = cast (message);
+                session.getBasicRemote ().sendText (text);
+                onMessageSent (message);
+                if (logger.isTraceEnabled ()) {
+                    logger.trace ("message send: {}", text);
+                }
+            } catch (Exception ex) {
+                logger.error ("text = {}", text);
+                logger.warn (ex.getMessage (), ex);
+                onError (ex);
             }
-        } catch (Exception ex) {
-            logger.error ("text = {}", text);
-            logger.warn (ex.getMessage (), ex);
-            onError (ex);
         }
     }
 
@@ -111,11 +122,6 @@ public abstract class AbstractWebSocket<T extends IWebsocketCommand>
         if (session != null && session.isOpen ()) {
             session.close (new CloseReason (CloseReason.CloseCodes.NORMAL_CLOSURE, null));
         }
-    }
-
-    @Override
-    public void onError (Throwable error) {
-        logger.warn (error.getMessage (), error);
     }
 
     @Override
