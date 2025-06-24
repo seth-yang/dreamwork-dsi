@@ -383,7 +383,6 @@ public class WebSocketManager {
      */
     @SuppressWarnings ("unchecked")
     private<T extends IWebsocketCommand> void notify (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
-        Set<AbstractWebSocket<T>> sockets = getSockets (type);
         if (cache.containsKey (type)) {
             // 这个类型的websocket还没被缓存，看看消息是否可缓存
             synchronized (messageCache) {
