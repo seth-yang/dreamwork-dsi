@@ -26,10 +26,6 @@ public @interface AWebSocket {
     boolean servletContext ()   default false;
     /** 指定 websocket 心跳的间隔，0 或 负值表示不启用自动心跳，单位毫秒。默认启用并设置为 50s */
     long heartbeat ()           default 50000;
-    /** 是否自动缓存在 WebSocketManager 中，默认为 true */
-    boolean cache ()            default true;
-    /** 如果 cache () 返回 true，则该字段指示消息缓存的最大时长，单位毫秒。默认 50s */
-    long messageCacheTimeout () default 50000;
 
     /** WebSocket 的配置类型，当且仅当为 WebSocketHttpConfigurator.class 时，以上那些 boolean 类型的自动注入才能生效 */
     Class<? extends ServerEndpointConfig.Configurator> configurator () default WebSocketHttpConfigurator.class;

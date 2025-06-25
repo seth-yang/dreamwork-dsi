@@ -1,6 +1,5 @@
 package org.dreamwork.dsi.embedded.httpd.support.websocket;
 
-import org.dreamwork.dsi.embedded.httpd.starter.WebSocketManager;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,15 +65,6 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
                     set.add (config);
                     if (logger.isTraceEnabled ()) {
                         logger.trace ("got a web socket class: {} bound as {}", type, ws.value ());
-                    }
-
-                    if (AbstractWebSocket.class.isAssignableFrom (type)) {
-                        if (ws.cache () && ws.messageCacheTimeout () > 0) {
-                            // 扫描到消息可缓存的 websocket 类型
-                            @SuppressWarnings ("unchecked")
-                            Class<? extends AbstractWebSocket<IWebsocketCommand>> aws = (Class<? extends AbstractWebSocket<IWebsocketCommand>>) type;
-                            WebSocketManager.enableCache (aws, ws.messageCacheTimeout ());
-                        }
                     }
                 }
             }

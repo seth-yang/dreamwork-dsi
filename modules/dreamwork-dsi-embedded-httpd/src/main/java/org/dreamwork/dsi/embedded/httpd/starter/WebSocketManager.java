@@ -33,7 +33,6 @@ public class WebSocketManager {
     private static final String LOOP_HEARTBEAT_NAME = "dsi.ws.heartbeat";
     private static final String LOOP_SENDER_NAME = "dsi.ws.sender";
     private static final String HEARTBEAT = "{\"action\":\"heartbeat\"}";
-    private static final Set<Class<? extends AbstractWebSocket<IWebsocketCommand>>> messageCacheableSockets = new HashSet<> ();
 
     private static WebSocketManager instance;
 
@@ -90,44 +89,6 @@ public class WebSocketManager {
     }
 
     /**
-     * 开启指定类型的 websocket 的消息缓存功能
-     * @param type    websocket 类型
-     * @param timeout 消息缓存的时长，单位 ms
-     */
-    public static void enableCache (Class<? extends AbstractWebSocket<IWebsocketCommand>> type, long timeout) {
-        if (type != null && timeout > 0) {
-            if (instance != null) {
-                instance.enableMessageCache (type, timeout);
-            } else {
-                messageCacheableSockets.add (type);
-            }
-        }
-    }
-
-    /**
-     * 取消指定类型的 websocket 缓存消息
-     * @param type websocket 类型
-     */
-    public static void disableCache (Class<? extends AbstractWebSocket<?>> type) {
-        if (type != null) {
-            if (instance != null) {
-                instance.disableMessageCache (type);
-            }
-        }
-    }
-
-    /**
-     * 获取指定类型和id的已缓存的消息
-     * @param type websocket 类型
-     * @param id   websocket 实例用于判断是否应该处理该消息
-     * @return 所有已经缓存的消息
-     * @param <T> 消息类型
-     */
-    public static<T extends IWebsocketCommand> List<T> cachedMessage (Class<? extends AbstractWebSocket<T>> type, String id) {
-        return instance.getCachedMessage (type, id);
-    }
-
-    /**
      * 获取所有正在连接的 websocket 实例集合
      * @return 正在连接的 websocket 实例集合
      */
@@ -139,17 +100,7 @@ public class WebSocketManager {
      * 在控制台显示当前已缓存的消息，主要用于调试
      */
     public static void showCache () {
-        System.out.println ("message cache: {");
         Gson g = new Gson ();
-        instance.messageCache.forEach ((key, info) -> {
-            System.out.printf ("    %s: {%n", key);
-            info.messages.forEach (w -> {
-                System.out.printf ("        %s%n", g.toJson (w.message));
-            });
-            System.out.println ("    }");
-            System.out.println ("}");
-        });
-
         System.out.println ("messages: {");
         instance.messages.forEach ((key, list) -> {
             System.out.printf ("    %s: [%n", key);
@@ -166,8 +117,6 @@ public class WebSocketManager {
     private final Object LOCKER = new byte[0], SENDER_LOCKER = new byte[0];
     /** 缓存的 websocket 实例 */
     private final Map<Class<? extends AbstractWebSocket<? extends IWebsocketCommand>>, Set<WebsocketWrapper<? extends IWebsocketCommand>>> cache = new ConcurrentHashMap<> ();
-    /** 缓存的消息 */
-    private final Map<Class<? extends AbstractWebSocket<IWebsocketCommand>>, CacheInfo<IWebsocketCommand>> messageCache = new HashMap<> ();
     /** 待发送的消息 */
     private final Map<Class<? extends AbstractWebSocket<?>>, List<MessageWrapper<IWebsocketCommand>>> messages = new HashMap<> ();
     private final Logger logger = LoggerFactory.getLogger (WebSocketManager.class);
@@ -189,15 +138,6 @@ public class WebSocketManager {
     public void init () {
         if (logger.isTraceEnabled ()) {
             logger.trace ("starting the websocket manager");
-        }
-        // 激活已经注册的消息可缓存的 websocket
-        if (!messageCacheableSockets.isEmpty ()) {
-            messageCacheableSockets.forEach (c -> {
-                AWebSocket ws = c.getAnnotation (AWebSocket.class);
-                enableCache (c, ws.messageCacheTimeout ());
-            });
-
-            messageCacheableSockets.clear ();
         }
 
         // 心跳维护线程
@@ -309,26 +249,6 @@ public class WebSocketManager {
                 }
             }
         });
-
-        // 查询是否有缓存的消息
-        if (messageCache.containsKey (type)) {
-            CacheInfo<T> info = (CacheInfo<T>) messageCache.get (type);
-            if (!info.messages.isEmpty ()) {
-                Set<MessageWrapper<T>> sent = new HashSet<> ();
-                info.messages.forEach (m -> {
-                    if (socket.matches (m.id, m.message)) {
-                        sent.add (m);
-                        socket.send (m.message);
-                        ThreadHelper.delay (100); // 不能太密集
-                    }
-                });
-
-                if (!sent.isEmpty ()) {
-                    info.messages.removeAll (sent);
-                    sent.clear ();
-                }
-            }
-        }
     }
 
     /**
@@ -383,99 +303,12 @@ public class WebSocketManager {
      */
     @SuppressWarnings ("unchecked")
     private<T extends IWebsocketCommand> void notify (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
-        if (cache.containsKey (type)) {
-            // 这个类型的websocket还没被缓存，看看消息是否可缓存
-            synchronized (messageCache) {
-                if (messageCache.containsKey (type)) {
-                    cacheMessage (type, id, message);
-                }
-            }
-        } else {
-            synchronized (messages) {
-                List<MessageWrapper<IWebsocketCommand>> list = messages.computeIfAbsent (type, key -> new ArrayList<> ());
-                MessageWrapper<T> wrapper = new MessageWrapper<> ();
-                wrapper.id = id;
-                wrapper.message = message;
-                list.add ((MessageWrapper<IWebsocketCommand>) wrapper);
-            }
-        }
-    }
-
-    /**
-     * 针对特定类型的 websocket 开启消息缓存功能
-     * @param type    指定的 websocket 类型
-     * @param timeout 消息缓存的时长
-     */
-    private void enableMessageCache (Class<? extends AbstractWebSocket<IWebsocketCommand>> type, long timeout) {
-        synchronized (messageCache) {
-            messageCache.computeIfAbsent (type, key -> new CacheInfo<> (timeout));
-        }
-    }
-
-    /**
-     * 取消指定类型的 websocket 的消息缓存功能
-     * @param type 指定的 websocket 类型
-     */
-    private void disableMessageCache (Class<? extends AbstractWebSocket<? extends IWebsocketCommand>> type) {
-        synchronized (messageCache) {
-            CacheInfo<?> info = messageCache.get (type);
-            if (info != null) {
-                info.messages.clear ();
-            }
-
-            messageCache.remove (type);
-        }
-    }
-
-    /**
-     * 缓存一个消息
-     * @param type    websocket 的类型
-     * @param id      websocket 实例用于判断是否处理该消息的唯一标识
-     * @param message 消息
-     * @param <T>     消息类型
-     */
-    private<T extends IWebsocketCommand> void cacheMessage (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
-        synchronized (messageCache) {
-            @SuppressWarnings ("unchecked")
-            CacheInfo<T> info = (CacheInfo<T>) messageCache.get (type);
-            if (info != null) {
-                MessageWrapper<T> wrapper = new MessageWrapper<> ();
-                wrapper.timeout = System.currentTimeMillis () + info.timeout;
-                wrapper.id = id;
-                wrapper.message = message;
-                info.messages.add (wrapper);
-            }
-        }
-    }
-
-    /**
-     * 获取指定 id 的已缓存的消息
-     * @param type websocket 的类型
-     * @param id   websocket 实例用于判断是否处理消息的唯一标识
-     * @return 指定 id 的已缓存的消息
-     * @param <T> 消息类型
-     */
-    @SuppressWarnings ("unchecked")
-    private<T extends IWebsocketCommand> List<T> getCachedMessage (Class<? extends AbstractWebSocket<T>> type, String id) {
-        synchronized (messageCache) {
-            CacheInfo<T> info = (CacheInfo<T>) messageCache.get (type);
-            if (info != null) {
-                List<T> copy = new ArrayList<> ();
-                List<MessageWrapper<T>> toDelete = new LinkedList<> ();
-                for (MessageWrapper<T> mw : info.messages) {
-                    if (mw.id.equals (id)) {
-                        copy.add (mw.message);
-                        toDelete.add (mw);
-                    }
-                }
-
-                if (!toDelete.isEmpty ()) {
-                    info.messages.removeAll (toDelete);
-                }
-                return copy;
-            }
-
-            return Collections.emptyList ();
+        synchronized (messages) {
+            List<MessageWrapper<IWebsocketCommand>> list = messages.computeIfAbsent (type, key -> new ArrayList<> ());
+            MessageWrapper<T> wrapper = new MessageWrapper<> ();
+            wrapper.id = id;
+            wrapper.message = message;
+            list.add ((MessageWrapper<IWebsocketCommand>) wrapper);
         }
     }
 
@@ -493,15 +326,6 @@ public class WebSocketManager {
         long timeout;
         String id;
         T message;
-    }
-
-    private static final class CacheInfo<T extends IWebsocketCommand> {
-        long timeout;
-        final List<MessageWrapper<T>> messages = new LinkedList<> ();
-
-        public CacheInfo (long timeout) {
-            this.timeout = timeout;
-        }
     }
 
     public static final class WebsocketWrapper<T extends IWebsocketCommand> {
