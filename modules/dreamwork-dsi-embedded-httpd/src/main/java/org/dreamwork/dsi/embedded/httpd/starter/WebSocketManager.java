@@ -229,7 +229,9 @@ public class WebSocketManager {
 
         Set<WebsocketWrapper<? extends IWebsocketCommand>> set = cache.computeIfAbsent (type, key -> new HashSet<> ());
         AWebSocket ws = type.getAnnotation (AWebSocket.class);
-        set.add (new WebsocketWrapper<> ((AbstractWebSocket<IWebsocketCommand>) socket, ws.heartbeat ()));
+        long time = ws.heartbeat ();
+        Long timeout = time > 0 ? time : null;
+        set.add (new WebsocketWrapper<> ((AbstractWebSocket<IWebsocketCommand>) socket, timeout));
         // 注入容器
         socket.setContext (context);
         // 注入管理器实例
