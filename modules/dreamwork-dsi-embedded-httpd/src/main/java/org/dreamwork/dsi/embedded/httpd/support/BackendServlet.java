@@ -24,9 +24,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -34,6 +36,7 @@ import java.util.regex.Pattern;
 
 @WebServlet (loadOnStartup = 1)
 public class BackendServlet extends HttpServlet {
+    private static final String UTF_8 = "utf-8";
     private static final String KEY_MSA = "X-Managed-Session";
     private final Logger logger = LoggerFactory.getLogger (BackendServlet.class);
 
@@ -288,6 +291,9 @@ public class BackendServlet extends HttpServlet {
             response.setHeader (KEY_MSA, key);
         }
 
+        Map<String, String> paramsMap = new HashMap<> ();
+        boolean patched = false;
+
         for (int i = 0; i < n; i ++) {
             WebParameter wp = handler.method.parameters.get (i);
             Class<?> type = types [i];
@@ -333,7 +339,12 @@ public class BackendServlet extends HttpServlet {
                 String temp;
                 switch (wp.location) {
                     case QueryString:
-                        temp = request.getParameter (wp.name);
+                        if (!patched) {
+                            patchPUTParameters (request, paramsMap);
+                            patched = true;
+                        }
+//                        temp = request.getParameter (wp.name);
+                        temp = paramsMap.get (wp.name);
                         if (StringUtil.isEmpty (temp)) {
                             if (!StringUtil.isEmpty (wp.defaultValue)) {
                                 temp = wp.defaultValue;
@@ -342,10 +353,11 @@ public class BackendServlet extends HttpServlet {
                         break;
                     case Body:
                         String contentType = request.getContentType ();
-                        if (contentType.contains ("json")) {
+                        if (contentType.contains ("json") || contentType.contains ("text/plain")) {
                             temp = new String (IOUtil.read (request.getInputStream ()));
                         } else {
-                            temp = request.getParameter (wp.name);
+//                            temp = request.getParameter (wp.name);
+                            temp = paramsMap.get (wp.name);
                         }
                         break;
                     case Path:
@@ -507,6 +519,45 @@ public class BackendServlet extends HttpServlet {
                 return new SimpleDateFormat ("yyyy-MM-dd").parse (expression);
             } catch (ParseException e) {
                 throw new RuntimeException (e);
+            }
+        }
+    }
+
+    private void urlDecode (String body, Map<String, String> map) throws IOException {
+        String[] array = body.split ("&");
+        for (String pair : array) {
+            if (pair.contains ("=")) {
+                String[] parts = pair.trim ().split ("=");
+                String name = URLDecoder.decode (parts[0].trim (), UTF_8);
+                if (!StringUtil.isEmpty (parts[1])) {
+                    String value = URLDecoder.decode (parts[1].trim (), UTF_8);
+                    map.put (name, value);
+                } else {
+                    map.put (name, null);
+                }
+            } else {
+                map.put (URLDecoder.decode (pair.trim (), UTF_8), null);
+            }
+        }
+    }
+
+    private void patchPUTParameters (HttpServletRequest request, Map<String, String> map) throws IOException {
+        String contentType = request.getContentType ().toLowerCase ();
+        String method = request.getMethod ().toLowerCase ();
+        if ("get".equals (method) || "post".equals (method)) {
+            Enumeration<String> en = request.getParameterNames ();
+            while (en.hasMoreElements ()) {
+                String name = en.nextElement ();
+                map.put (name, request.getParameter (name));
+            }
+        } else if ("put".equals (method) && !StringUtil.isEmpty (contentType) && contentType.contains ("application/x-www-form-urlencoded")) {
+            String query = request.getQueryString ();
+            if (!StringUtil.isEmpty (query)) {
+                urlDecode (query, map);
+            }
+            String body = new String (IOUtil.read (request.getInputStream ()));
+            if (!StringUtil.isEmpty (body)) {
+                urlDecode (body, map);
             }
         }
     }
