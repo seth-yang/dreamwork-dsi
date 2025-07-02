@@ -8,6 +8,7 @@
     <artifactId>dreamwork-dsi-parent</artifactId>
     <version>2.1.0</version>
     <packaging>pom</packaging>
+    <name>dreamwork-dsi-parent</name>
     <modules>
         <module>modules/dreamwork-dsi-runtime</module>
         <module>modules/dreamwork-dsi-dbcp</module>
