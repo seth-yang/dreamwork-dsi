@@ -190,7 +190,9 @@ public class WebSocketManager {
                     try {
                         sockets.forEach (socket -> {
                             for (MessageWrapper<IWebsocketCommand> wrapper : copy) {
-                                socket.send (wrapper.message);
+                                if (socket.matches (wrapper.id, wrapper.message)) {
+                                    socket.send (wrapper.message);
+                                }
                             }
                         });
                     } finally {
