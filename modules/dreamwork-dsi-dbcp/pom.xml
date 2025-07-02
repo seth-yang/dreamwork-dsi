@@ -10,6 +10,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>dreamwork-dsi-dbcp</artifactId>
+    <name>dreamwork-dsi-dbcp</name>
     <version>${dsi.version}</version>
 
     <properties>

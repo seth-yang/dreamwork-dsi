@@ -12,6 +12,7 @@
 	<artifactId>dreamwork-dsi-runtime</artifactId>
 	<version>${dsi.version}</version>
     <modelVersion>4.0.0</modelVersion>
+    <name>dreamwork-dsi-runtime</name>
 
     <dependencies>
         <dependency>

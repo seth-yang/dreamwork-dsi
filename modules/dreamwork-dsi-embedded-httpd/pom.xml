@@ -5,6 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>dreamwork-dsi-embedded-httpd</artifactId>
     <version>${dsi.version}</version>
+    <name>dreamwork-dsi-embedded-httpd</name>
 
     <parent>
         <groupId>io.github.seth-yang</groupId>
