@@ -167,38 +167,42 @@ public class WebSocketManager {
         // 发送线程
         Looper.create (LOOP_SENDER_NAME, 64, 1);
         Looper.runInLoop (LOOP_SENDER_NAME, () -> {
-            List<MessageWrapper<IWebsocketCommand>> copy = new ArrayList<> ();
-            Set<AbstractWebSocket<IWebsocketCommand>> sockets = new HashSet<> ();
             while (running) {
+                List<MessageWrapper<IWebsocketCommand>> copy = new ArrayList<> ();
+                Set<AbstractWebSocket<IWebsocketCommand>> sockets = new HashSet<> ();
                 // 复制需要发送的消息集合
                 synchronized (messages) {
                     messages.forEach ((key, list) -> {
-                        @SuppressWarnings ("unchecked")
-                        Class<? extends AbstractWebSocket<IWebsocketCommand>> type =
-                                (Class<? extends AbstractWebSocket<IWebsocketCommand>>) key;
-                        sockets.addAll (getSockets (type));
-                        synchronized (SENDER_LOCKER) {
-                            if (!list.isEmpty ()) {
-                                copy.addAll (list);
-                                list.clear ();
+                        if (list != null && !list.isEmpty ()) {
+                            @SuppressWarnings ("unchecked")
+                            Class<? extends AbstractWebSocket<IWebsocketCommand>> type =
+                                    (Class<? extends AbstractWebSocket<IWebsocketCommand>>) key;
+                            // 获取匹配类型的消息集合
+                            sockets.addAll (getSockets (type));
+                            synchronized (SENDER_LOCKER) {
+                                if (!list.isEmpty ()) {
+                                    copy.addAll (list);
+                                    list.clear ();
+                                }
+                            }
+
+                            if (!copy.isEmpty ()) {
+                                // 发送消息
+                                try {
+                                    sockets.forEach (socket -> {
+                                        for (MessageWrapper<IWebsocketCommand> wrapper : copy) {
+                                            if (socket.matches (wrapper.id, wrapper.message)) {
+                                                socket.send (wrapper.message);
+                                            }
+                                        }
+                                    });
+                                } finally {
+                                    sockets.clear ();
+                                    copy.clear ();
+                                }
                             }
                         }
                     });
-                }
-                if (!copy.isEmpty ()) {
-                    // 发送消息
-                    try {
-                        sockets.forEach (socket -> {
-                            for (MessageWrapper<IWebsocketCommand> wrapper : copy) {
-                                if (socket.matches (wrapper.id, wrapper.message)) {
-                                    socket.send (wrapper.message);
-                                }
-                            }
-                        });
-                    } finally {
-                        sockets.clear ();
-                        copy.clear ();
-                    }
                 }
 
                 ThreadHelper.delay (10);
@@ -306,13 +310,21 @@ public class WebSocketManager {
      * @param <T>     消息类型
      */
     @SuppressWarnings ("unchecked")
-    private<T extends IWebsocketCommand> void notify (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
-        synchronized (messages) {
+    synchronized private<T extends IWebsocketCommand> void notify (Class<? extends AbstractWebSocket<T>> type, String id, T message) {
+        if (logger.isTraceEnabled ()) {
+            logger.trace ("sending message: {} with id[{}] to {}", message, id, type);
+        }
+        if (cache.containsKey (type)) { // 当且仅当有这种类型的websocket实例被缓存才需要通知
             List<MessageWrapper<IWebsocketCommand>> list = messages.computeIfAbsent (type, key -> new ArrayList<> ());
             MessageWrapper<T> wrapper = new MessageWrapper<> ();
             wrapper.id = id;
             wrapper.message = message;
             list.add ((MessageWrapper<IWebsocketCommand>) wrapper);
+            if (logger.isTraceEnabled ()) {
+                logger.trace ("message save to type: {}", type);
+            }
+        } else if (logger.isTraceEnabled ()) {
+            logger.trace ("there's no websocket instance with type: {}", type);
         }
     }
 
