@@ -1,6 +1,8 @@
 package org.dreamwork.injection.impl;
 
 import org.dreamwork.util.ResourceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -12,6 +14,7 @@ import java.util.Set;
  * 基本的类扫描器
  */
 public abstract class ClassScanner {
+    private final Logger logger = LoggerFactory.getLogger (ClassScanner.class);
     /**
      * 扫描给定名称的所有包下的类。
      *
@@ -38,7 +41,7 @@ public abstract class ClassScanner {
                     try {
                         onFound (type.getSimpleName (), type, wrappers);
                     } catch (Exception ex) {
-                        ex.printStackTrace ();
+                        logger.warn (ex.getMessage (), ex);
                         throw ex;
                     }
                 }

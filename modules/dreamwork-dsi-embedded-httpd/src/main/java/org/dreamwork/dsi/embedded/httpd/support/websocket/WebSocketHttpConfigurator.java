@@ -172,6 +172,9 @@ public class WebSocketHttpConfigurator extends ServerEndpointConfig.Configurator
                 }
                 if (target != null) {
                     try {
+                        if (!field.isAccessible ()) {
+                            field.setAccessible (true);
+                        }
                         field.set (instance, target);
                     } catch (Exception ex) {
                         throw new InstantiationException ("cannot inject field: " + field.getName ());
@@ -200,6 +203,9 @@ public class WebSocketHttpConfigurator extends ServerEndpointConfig.Configurator
                         }
                     }
                     try {
+                        if (!field.isAccessible ()) {
+                            field.setAccessible (true);
+                        }
                         field.set (instance, target);
                     } catch (Exception ex) {
                         throw new InstantiationException ("cannot inject field: " + field.getName ());
@@ -214,6 +220,9 @@ public class WebSocketHttpConfigurator extends ServerEndpointConfig.Configurator
     private static<T> void injectMethod (T instance, Cache c) throws InstantiationException {
         if (!c.methods.isEmpty ()) {
             for (Method method : c.methods) {
+                if (!method.isAccessible ()) {
+                    method.setAccessible (true);
+                }
                 int count = method.getParameterCount ();
                 if (count == 1 && method.isAnnotationPresent (Resources.class)) {
                     Resource res = method.getAnnotation (Resource.class);
@@ -302,23 +311,25 @@ public class WebSocketHttpConfigurator extends ServerEndpointConfig.Configurator
                     throw new InstantiationException ("there's more thant one method annotated by PostConstruct");
                 }
                 c.starter = method;
-            } else if (count == 1 && method.isAnnotationPresent (Resource.class)) {
-                c.methods.add (method);
-            } else if (count > 1) {
-                Annotation[][] pas = method.getParameterAnnotations ();
-                for (Annotation[] pa : pas) {
-                    boolean matches = false;
-                    for (Annotation a : pa) {
-                        if (a instanceof Resource) {
-                            matches = true;
-                            break;
+            } else if (method.isAnnotationPresent (Resource.class)) {
+                if (count == 1) {
+                    c.methods.add (method);
+                } else if (count > 1) {
+                    Annotation[][] pas = method.getParameterAnnotations ();
+                    for (Annotation[] pa : pas) {
+                        boolean matches = false;
+                        for (Annotation a : pa) {
+                            if (a instanceof Resource) {
+                                matches = true;
+                                break;
+                            }
+                        }
+                        if (!matches) {
+                            throw new InstantiationException ("there's at least one parameter was not annotated by Resource annotation");
                         }
                     }
-                    if (!matches) {
-                        throw new InstantiationException ("there's at least one parameter was not annotated by Resource annotation");
-                    }
+                    c.methods.add (method);
                 }
-                c.methods.add (method);
             }
         }
 

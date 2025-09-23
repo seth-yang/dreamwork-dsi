@@ -90,4 +90,18 @@ public @interface AInjectionContext {
      * @since 2.0.0
      */
     int shutdownPort () default -1;
+
+    /**
+     * 指示扫描传统 Web 组件 (如 Servlet, Filter, Listen等） 的包名
+     * @return 需要扫描的Web组件包名
+     * @since 2.1.2
+     */
+    String[] webComponentPackages () default {};
+
+    /**
+     * 指示扫描传统 Websocket 组件的包名
+     * @return 需要扫描的 Websocket 组件包名
+     * @since 2.1.2
+     */
+    String[] websocketPackages () default {};
 }

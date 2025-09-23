@@ -8,10 +8,13 @@ import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages;
 import org.dreamwork.dsi.embedded.httpd.support.BackendServlet;
 import org.dreamwork.dsi.embedded.httpd.support.WebComponentScanner;
+import org.dreamwork.dsi.embedded.httpd.support.websocket.InternalWebsocketScanner;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.WebSocketHttpConfigurator;
 import org.dreamwork.injection.AConfigured;
+import org.dreamwork.injection.AInjectionContext;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.injection.impl.ScannerHelper;
+import org.dreamwork.util.CollectionCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +28,9 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.dreamwork.injection.IObjectContext.CONTEXT_DESCRIBER;
+import static org.dreamwork.util.CollectionHelper.isNotEmpty;
 
 @Resource
 public class EmbeddedTomcatStarter {
@@ -155,6 +161,9 @@ public class EmbeddedTomcatStarter {
         }
         System.setProperty ("java.io.tmpdir", tmp.getCanonicalPath ());
 
+        // 扫描 websocket 组件
+        InternalWebsocketScanner.setContext (context);
+
         // @since 2.1.2
         // 设置 Websocket 实例化注入的 Context
         WebSocketHttpConfigurator.setObjectContext (context);
@@ -242,8 +251,15 @@ public class EmbeddedTomcatStarter {
     private void scanWebComponents (IObjectContext context) throws Exception {
         ClassLoader loader = getClass ().getClassLoader ();
         Annotation[] annotations = context.getContextAnnotation ();
-        if (annotations != null && annotations.length > 0) {
+        if (isNotEmpty (annotations)) {
             Set<String> set = new HashSet<> ();
+            // @since 2.1.2, AInjectionContext.webComponentPackages 也合并进来
+            AInjectionContext ic = (AInjectionContext) context.getBean (CONTEXT_DESCRIBER);
+            if (ic != null) {
+                if (isNotEmpty (ic.webComponentPackages ())) {
+                    set.addAll (CollectionCreator.asSet (ic.webComponentPackages ()));
+                }
+            }
             for (Annotation annotation : annotations) {
                 if (annotation instanceof AWebPackages) {
                     AWebPackages wp = (AWebPackages) annotation;

@@ -9,7 +9,7 @@ import java.util.Map;
  * 简单容器的自动装配钩子
  *
  * @author seth.yang
- * @since 3.1.1
+ * @since 1.1.1
  */
 public interface IObjectContextHook {
     default String[] getScanPackages () { return new String[0]; }

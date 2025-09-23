@@ -27,6 +27,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import static org.dreamwork.injection.IObjectContext.CONTEXT_ANNOTATION_KEY;
+import static org.dreamwork.injection.IObjectContext.CONTEXT_DESCRIBER;
 import static org.dreamwork.injection.impl.ScannerHelper.fillPackageNames;
 
 /**
@@ -143,6 +144,10 @@ public class SimpleObjectContextFactory {
         // 注册全局的懒加载器
         LazyScanner lazy = new LazyScanner ();
         root.register (lazy);
+
+        // 注册 AInjectionContext 本身
+        // @since 2.1.2
+        root.register (CONTEXT_DESCRIBER, ic);
 
         // @since 1.1.0 保存所有的注解，后面子模块可能有用
         Annotation[] annotations = type.getAnnotations ();

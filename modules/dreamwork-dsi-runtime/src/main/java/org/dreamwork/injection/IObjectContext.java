@@ -135,6 +135,8 @@ public interface IObjectContext extends IDisposable {
      */
     String CONTEXT_ANNOTATION_KEY = "org.dreamwork.dsi.CONTEXT_ANNOTATION_KEY";
 
+    String CONTEXT_DESCRIBER = "org.dreamwork.dsi.CONTEXT_DESCRIBER";
+
     /**
      * 获取所有针对容器的注解
      * @return 所有针对容器的注解
