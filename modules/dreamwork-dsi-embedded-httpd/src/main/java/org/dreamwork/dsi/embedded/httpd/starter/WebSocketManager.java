@@ -6,6 +6,7 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.AWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
+import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.ThreadHelper;
@@ -121,6 +122,9 @@ public class WebSocketManager {
     private final Map<Class<? extends AbstractWebSocket<?>>, List<MessageWrapper<IWebsocketCommand>>> messages = new HashMap<> ();
     private final Logger logger = LoggerFactory.getLogger (WebSocketManager.class);
 
+    @AConfigured ("${embedded.httpd.websocket.enabled}")
+    private boolean enabled = true;
+
     @Resource
     private IObjectContext context;
 
@@ -136,6 +140,10 @@ public class WebSocketManager {
 
     @PostConstruct
     public void init () {
+        if (!enabled) {
+            logger.warn ("the websocket supported is not enabled, nothing to do.");
+            return;
+        }
         if (logger.isTraceEnabled ()) {
             logger.trace ("starting the websocket manager");
         }

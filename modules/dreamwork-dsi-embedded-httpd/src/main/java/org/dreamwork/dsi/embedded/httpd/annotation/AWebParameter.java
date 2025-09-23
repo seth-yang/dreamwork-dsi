@@ -23,4 +23,11 @@ public @interface AWebParameter {
      * @return 如果是以上4种类型应该设置为 true，否则设置为 false
      */
     boolean internal () default false;
+
+    /**
+     * 指示这个参数是否可空
+     * @return 是否可空
+     * @since 2.1.2
+     */
+    boolean nullable () default true;
 }

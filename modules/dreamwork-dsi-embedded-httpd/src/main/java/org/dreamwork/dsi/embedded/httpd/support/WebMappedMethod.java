@@ -75,6 +75,7 @@ public class WebMappedMethod {
                                 }
                                 wp.type = awp.type ();
                                 wp.location = awp.location ();
+                                wp.nullable = awp.nullable ();
                             }
                             parameters.add (wp);
 
@@ -96,15 +97,18 @@ public class WebMappedMethod {
                         } else if (an instanceof ARequestAttribute) {
                             // @since 1.1.0
                             ARequestAttribute ra = (ARequestAttribute) an;
-                            appendParameter (ParameterType.request_attribute, ra.name (), ra.value ());
+                            WebParameter wp = appendParameter (ParameterType.request_attribute, ra.name (), ra.value ());
+                            wp.nullable = ra.nullable ();
                         } else if (an instanceof ASessionAttribute) {
                             // @since 1.1.0
                             ASessionAttribute sa = (ASessionAttribute) an;
-                            appendParameter (ParameterType.session_attribute, sa.name (), sa.value ());
+                            WebParameter wp = appendParameter (ParameterType.session_attribute, sa.name (), sa.value ());
+                            wp.nullable = sa.nullable ();
                         } else if (an instanceof AFormItem) {
                             // @since 1.1.1
                             AFormItem fi = (AFormItem) an;
                             WebParameter wp = createWebParameter (fi.type (), ParameterLocation.QueryString, fi.name (), fi.value ());
+                            wp.nullable = fi.nullable ();
                             String dv = fi.defaultValue ();
                             if (!StringUtil.isEmpty (dv) && !"$$EMPTY$$".equals (dv)) {
                                 wp.defaultValue = dv;
@@ -116,10 +120,12 @@ public class WebMappedMethod {
                         } else if (an instanceof AHeaderItem) {
                             // @since 1.1.1
                             AHeaderItem hp = (AHeaderItem) an;
-                            createWebParameter (hp.type (), ParameterLocation.Header, hp.name (), hp.value ());
+                            WebParameter wp = createWebParameter (hp.type (), ParameterLocation.Header, hp.name (), hp.value ());
+                            wp.nullable = hp.nullable ();
                         } else if (an instanceof AManagedSessionAttribute) {
                             AManagedSessionAttribute msa = (AManagedSessionAttribute) an;
-                            appendParameter (ParameterType.managed_session_attribute, msa.name (), msa.value ());
+                            WebParameter wp = appendParameter (ParameterType.managed_session_attribute, msa.name (), msa.value ());
+                            wp.nullable = msa.nullable ();
                         }
                     }
                 } else {
@@ -155,7 +161,7 @@ public class WebMappedMethod {
      * @param secondName 第二名称
      * @since 1.1.0
      */
-    private void appendParameter (ParameterType type, String firstName, String secondName) {
+    private WebParameter appendParameter (ParameterType type, String firstName, String secondName) {
         WebParameter wp = new WebParameter ();
         wp.type = type;
         String name = firstName;
@@ -166,6 +172,7 @@ public class WebMappedMethod {
         wp.name = name;
         wp.location = ParameterLocation.Internal;
         parameters.add (wp);
+        return wp;
     }
 
     public boolean matches (String pattern, Map<String, String> parsedArgs) {

@@ -13,4 +13,11 @@ public @interface AFormItem {
     String name () default "";
     ParameterType type () default ParameterType.raw;
     String defaultValue () default "$$EMPTY$$";
+
+    /**
+     * 指示这个参数是否可空
+     * @return 是否可空
+     * @since 2.1.2
+     */
+    boolean nullable () default true;
 }

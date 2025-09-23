@@ -4,6 +4,7 @@ import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.support.ManagedSession;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.util.StringUtil;
+import org.dreamwork.util.ThreadHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Resource
 public class SessionManager {
     @AConfigured ("${dsi.embedded.httpd.session.timeout}")
-    private final long timeout = 30 * 60 * 1000;
+    private long timeout = 30 * 60 * 1000;
+
+    @AConfigured ("${dsi.embedded.httpd.managed.session.enabled}")
+    private boolean enabled = true;
 
     private volatile boolean running = true;
 
@@ -29,6 +33,9 @@ public class SessionManager {
 
     @PostConstruct
     public void startMonitor () {
+        if (!enabled) {
+            logger.warn ("the managed session is not enabled");
+        }
         if (logger.isTraceEnabled ()) {
             logger.trace ("session timeout = {} ms.", timeout);
             logger.trace ("starting the session check monitor");
@@ -87,11 +94,7 @@ public class SessionManager {
                         }
                     }
 
-                    try {
-                        Thread.sleep (2000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException (e);
-                    }
+                    ThreadHelper.delay (2000);
                 }
             }
             if (logger.isTraceEnabled ()) {

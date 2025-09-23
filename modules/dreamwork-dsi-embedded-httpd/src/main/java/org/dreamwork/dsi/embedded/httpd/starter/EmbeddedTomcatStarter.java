@@ -8,6 +8,7 @@ import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages;
 import org.dreamwork.dsi.embedded.httpd.support.BackendServlet;
 import org.dreamwork.dsi.embedded.httpd.support.WebComponentScanner;
+import org.dreamwork.dsi.embedded.httpd.support.websocket.WebSocketHttpConfigurator;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.injection.impl.ScannerHelper;
@@ -154,6 +155,10 @@ public class EmbeddedTomcatStarter {
         }
         System.setProperty ("java.io.tmpdir", tmp.getCanonicalPath ());
 
+        // @since 2.1.2
+        // 设置 Websocket 实例化注入的 Context
+        WebSocketHttpConfigurator.setObjectContext (context);
+
         tomcat.setBaseDir (base.getCanonicalPath ());
         tomcat.setPort (port);
         tomcat.getServer ().setAddress (host);
@@ -208,8 +213,8 @@ public class EmbeddedTomcatStarter {
             try {
                 tomcat.start ();
                 logger.info ("embedded tomcat started.");
-            } catch (LifecycleException e) {
-                e.printStackTrace ();
+            } catch (LifecycleException ex) {
+                logger.warn (ex.getMessage (), ex);
             }
         });
     }
