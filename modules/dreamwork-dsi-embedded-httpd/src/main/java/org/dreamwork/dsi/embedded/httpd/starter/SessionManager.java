@@ -14,6 +14,9 @@ import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Resource
 public class SessionManager {
@@ -31,6 +34,9 @@ public class SessionManager {
 
     private final Map<String, ManagedSession> session = new ConcurrentHashMap<> ();
 
+    private final Lock locker = new ReentrantLock (false);
+    private final Condition c = locker.newCondition ();
+
     @PostConstruct
     public void startMonitor () {
         if (!enabled) {
@@ -41,67 +47,7 @@ public class SessionManager {
             logger.trace ("starting the session check monitor");
         }
         Looper.create (LOOP_NAME, 1, 1);
-        Looper.runInLoop (LOOP_NAME, () -> {
-            while (running) {
-                synchronized (LOCKER) {
-                    while (running && session.isEmpty ()) {
-                        try {
-                            LOCKER.wait ();
-                            if (logger.isTraceEnabled ()) {
-                                logger.trace ("session manager awake and running = {}", running);
-                            }
-                        } catch (InterruptedException ex) {
-                            if (logger.isTraceEnabled ()) {
-                                logger.warn (ex.getMessage (), ex);
-                            }
-                        }
-                    }
-
-                    if (logger.isTraceEnabled ()) {
-                        logger.trace ("go on");
-                    }
-                }
-
-                if (running) {  // double check
-                    Map<String, ManagedSession> copied;
-                    synchronized (LOCKER) {
-                        copied = new HashMap<> (session);
-                    }
-                    if (!copied.isEmpty ()) {
-                        Map<String, ManagedSession> temp = new HashMap<> ();
-                        long now = System.currentTimeMillis ();
-                        for (Map.Entry<String, ManagedSession> e : copied.entrySet ()) {
-                            ManagedSession item = e.getValue ();
-                            if (now - item.timestamp > timeout) {
-                                temp.put (e.getKey (), item);
-                            }
-                        }
-
-                        if (!temp.isEmpty ()) {
-                            synchronized (LOCKER) {
-                                for (Map.Entry<String, ManagedSession> e : temp.entrySet ()) {
-                                    ManagedSession item = e.getValue ();
-                                    if (now - item.timestamp > timeout) {
-                                        session.remove (e.getKey ());
-                                        if (logger.isTraceEnabled ()) {
-                                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat ("yyyy-MM-dd HH:mm:ss.SSS");
-                                            logger.trace ("the session:{id={}, create at: {}, now = {}} has expired, clear it success",
-                                                    e.getKey (), sdf.format (item.timestamp), sdf.format (now));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    ThreadHelper.delay (2000);
-                }
-            }
-            if (logger.isTraceEnabled ()) {
-                logger.trace ("the session monitor stopped.");
-            }
-            Looper.destory (LOOP_NAME);
-        });
+        Looper.runInLoop (LOOP_NAME, this::mainLoop);
     }
 
     @PreDestroy
@@ -112,6 +58,17 @@ public class SessionManager {
         running = false;
         synchronized (LOCKER) {
             LOCKER.notifyAll ();
+        }
+        try {
+            locker.lockInterruptibly ();
+            c.signalAll ();
+        } catch (InterruptedException ex) {
+            if (logger.isTraceEnabled ()) {
+                logger.warn ("warn in pre-destroy");
+                logger.warn (ex.getMessage (), ex);
+            }
+        } finally {
+            locker.unlock ();
         }
     }
 
@@ -142,5 +99,64 @@ public class SessionManager {
         synchronized (LOCKER) {
             session.remove (key);
         }
+    }
+
+    private void mainLoop () {
+        while (running) {
+            try {
+                locker.lockInterruptibly ();
+                while (running && session.isEmpty ()) {
+                    c.await ();
+                    if (logger.isTraceEnabled ()) {
+                        logger.trace ("session manager awake and running = {}", running);
+                    }
+                }
+            } catch (InterruptedException ex) {
+                if (logger.isTraceEnabled ()) {
+                    logger.warn (ex.getMessage (), ex);
+                }
+            } finally {
+                locker.unlock ();
+            }
+
+            if (running) {  // double check
+                Map<String, ManagedSession> copied;
+                synchronized (LOCKER) {
+                    copied = new HashMap<> (session);
+                }
+                if (!copied.isEmpty ()) {
+                    Map<String, ManagedSession> temp = new HashMap<> ();
+                    long now = System.currentTimeMillis ();
+                    for (Map.Entry<String, ManagedSession> e : copied.entrySet ()) {
+                        ManagedSession item = e.getValue ();
+                        if (now - item.timestamp > timeout) {
+                            temp.put (e.getKey (), item);
+                        }
+                    }
+
+                    if (!temp.isEmpty ()) {
+                        synchronized (LOCKER) {
+                            for (Map.Entry<String, ManagedSession> e : temp.entrySet ()) {
+                                ManagedSession item = e.getValue ();
+                                if (now - item.timestamp > timeout) {
+                                    session.remove (e.getKey ());
+                                    if (logger.isTraceEnabled ()) {
+                                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat ("yyyy-MM-dd HH:mm:ss.SSS");
+                                        logger.trace ("the session:{id={}, create at: {}, now = {}} has expired, clear it success",
+                                                e.getKey (), sdf.format (item.timestamp), sdf.format (now));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ThreadHelper.delay (2000);
+            }
+        }
+        if (logger.isTraceEnabled ()) {
+            logger.trace ("the session monitor stopped.");
+        }
+        Looper.destory (LOOP_NAME);
     }
 }

@@ -3,19 +3,14 @@ package org.dreamwork.dsi.embedded.httpd.support.upload;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.tomcat.util.http.fileupload.FileItem;
+import org.dreamwork.dsi.embedded.httpd.support.InjectableServlet;
 import org.dreamwork.dsi.embedded.httpd.support.WebJsonResult;
-import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.misc.MimeType;
 import org.dreamwork.misc.MimeTypeManager;
 import org.dreamwork.util.FileInfo;
 import org.dreamwork.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -30,23 +25,9 @@ import java.util.Map;
 import static com.google.gson.ToNumberPolicy.LONG_OR_DOUBLE;
 import static org.dreamwork.util.CollectionHelper.isNotEmpty;
 
-public abstract class ResourceServlet extends HttpServlet {
-    private final Logger logger = LoggerFactory.getLogger (ResourceServlet.class);
+public abstract class ResourceServlet extends InjectableServlet {
+    @Resource
     protected FileUploader uploader;
-
-    @Override
-    public void init (ServletConfig config) throws ServletException {
-        super.init (config);
-
-        ServletContext webapp = config.getServletContext ();
-        IObjectContext context = (IObjectContext) webapp.getAttribute (IObjectContext.class.getCanonicalName ());
-        uploader = context.getBean (FileUploader.class);
-
-        if (uploader == null) {
-            logger.warn ("Cannot find the upload service. Is the package org.dreamwork.dsi.embedded.httpd.support.upload included in the scan packages and annotated in your main class?");
-            throw new RuntimeException ("Cannot find the upload service");
-        }
-    }
 
     @Override
     protected void doPost (HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -96,9 +77,9 @@ public abstract class ResourceServlet extends HttpServlet {
 
     @Override
     protected long getLastModified (HttpServletRequest request) {
-        String pathinfo = request.getPathInfo ();
-        if (StringUtil.isNotEmpty (pathinfo)) {
-            Path path = Paths.get (uploader.basedir, pathinfo);
+        String pathInfo = request.getPathInfo ();
+        if (StringUtil.isNotEmpty (pathInfo)) {
+            Path path = Paths.get (uploader.basedir, pathInfo);
             if (Files.exists (path)) {
                 request.setAttribute ("resource", path);
                 return path.toFile ().lastModified ();

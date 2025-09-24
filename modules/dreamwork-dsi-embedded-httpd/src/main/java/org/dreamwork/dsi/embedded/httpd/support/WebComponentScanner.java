@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Set;
 
+import static org.dreamwork.util.CollectionHelper.isNotEmpty;
+
 public class WebComponentScanner extends ClassScanner {
     private final Logger logger = LoggerFactory.getLogger (WebComponentScanner.class);
 
@@ -87,7 +89,7 @@ public class WebComponentScanner extends ClassScanner {
         }
         Arrays.stream (mappings).forEach (w::addMapping);
         WebInitParam[] params = servlet.initParams ();
-        if (params != null && params.length > 0) {
+        if (isNotEmpty (params)) {
             for (WebInitParam p : params) {
                 w.addInitParameter (p.name (), p.value ());
             }

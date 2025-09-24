@@ -7,9 +7,9 @@ import org.apache.catalina.startup.Tomcat;
 import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages;
 import org.dreamwork.dsi.embedded.httpd.support.BackendServlet;
+import org.dreamwork.dsi.embedded.httpd.support.WebComponentHelper;
 import org.dreamwork.dsi.embedded.httpd.support.WebComponentScanner;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.InternalWebsocketScanner;
-import org.dreamwork.dsi.embedded.httpd.support.websocket.WebSocketHttpConfigurator;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.AInjectionContext;
 import org.dreamwork.injection.IObjectContext;
@@ -166,7 +166,7 @@ public class EmbeddedTomcatStarter {
 
         // @since 2.1.2
         // 设置 Websocket 实例化注入的 Context
-        WebSocketHttpConfigurator.setObjectContext (context);
+        WebComponentHelper.setContext (context);
 
         tomcat.setBaseDir (base.getCanonicalPath ());
         tomcat.setPort (port);
@@ -187,6 +187,7 @@ public class EmbeddedTomcatStarter {
 
         final ClassLoader currentLoader = getClass ().getClassLoader ();
         webContext = (StandardContext) tomcat.addWebapp (contextPath, webapp.getCanonicalPath ());
+
         // 设置tomcat上下文的classloader为当前类的classloader，
         // 确保所有类能够在正确的作用域内被加载
         webContext.setParentClassLoader (currentLoader);
