@@ -9,6 +9,8 @@ import org.dreamwork.misc.MimeType;
 import org.dreamwork.misc.MimeTypeManager;
 import org.dreamwork.util.FileInfo;
 import org.dreamwork.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -26,6 +28,8 @@ import static com.google.gson.ToNumberPolicy.LONG_OR_DOUBLE;
 import static org.dreamwork.util.CollectionHelper.isNotEmpty;
 
 public abstract class ResourceServlet extends InjectableServlet {
+    private final Logger logger = LoggerFactory.getLogger (ResourceServlet.class);
+
     @Resource
     protected FileUploader uploader;
 
@@ -42,7 +46,13 @@ public abstract class ResourceServlet extends InjectableServlet {
                 map.put (file.getFieldName (), name);
             }
 
-            result = new WebJsonResult (0, "success", map);
+            try {
+                Object ret = onFilesSaved (map);
+                result = new WebJsonResult (0, "success", ret);
+            } catch (Exception ex) {
+                result = new WebJsonResult (500, "Internal Error", null);
+                logger.warn (ex.getMessage (), ex);
+            }
         } else {
             result = new WebJsonResult (400, "无效的参数", null);
         }
@@ -87,5 +97,15 @@ public abstract class ResourceServlet extends InjectableServlet {
         }
 
         return super.getLastModified (request);
+    }
+
+    /**
+     * 当临时文件全部被保存后触发的事件
+     * @param savedFiles 所有成功保存的临时文件的信息，以客户端字段名为 key
+     * @return 即将返回给客户端，处理后的结果
+     */
+    protected Object onFilesSaved (Map<String, String> savedFiles) {
+        // return the savedFiles itself by default
+        return savedFiles;
     }
 }

@@ -7,7 +7,7 @@
 <dependency>
     <groupId>io.github.seth-yang</groupId>
     <artifactId>dreamwork-dsi-runtime</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.2</version>
 </dependency>
 ```
 
@@ -67,28 +67,28 @@ public class MyProcessor implements IInjectResolvedProcessor {
 ### org.dreamwork.injection.AInjectionContext 注解
 `org.dreamwork.injection.IObjectContext`的程序入口描述
 
-- scanPackages 属性
+- `scanPackages` 属性
 	指定需要扫描的所有包名。 无论是否提供了该属性，扫描器都会扫描被标注对象的包
 	
-- config 属性
+- `config` 属性
 	指定配置文件的路径
 	
 	- 无协议 或 协议 `classpath:` 代表在类路径中查找
 	- 协议 `file:` 代表在文件系统中查找
 	
 	默认值 "" 代表配置文件名为 **object-context.conf**
-	1. 在**类路径**中查找 **`/object-context.conf`**，如果没有找到
-	2. 在**当前目录**下查找 **../conf/object-context.conf**，若未找到
-3. 在当前目录下查找 **object-context.conf**
+  1. 在**类路径**中查找 **`/object-context.conf`**，如果没有找到 
+  2. 在**当前目录**下查找 **`../conf/object-context.conf`**，若未找到
+  3. 在当前目录下查找 **`object-context.conf`**
 	
 	如果扫描器找到配置文件，将在 `IObjectContext` 中注册一个名为**global-config**，类型为`org.dreamwork.config.IConfiguration`的对象，所有配置都可从这个对象中获取。
 	
 	扫描器还会将命令行参数和这个配置进行合并，*如果提供了命令行参数*
 	
-- recursive 属性
+- `recursive` 属性
 	是否递归扫描。默认`false`
 	
-- argumentDefinition 属性
+- `argumentDefinition` 属性
 	命令行参数定义的 `json` 结构。扫描器的查找顺序：
 	1. 在 **类路径** 中搜索这个属性提供的值，若未找到
 	2. 在 **类路径** 中搜索 **`cli-arguments.json`**, 若未找到
@@ -96,16 +96,16 @@ public class MyProcessor implements IInjectResolvedProcessor {
 	4. 在 **当前路径** 中搜索 **`cli-arguments.json`**
 
 ### org.dreamwork.injection.AConfigured 注解
-- value 属性
+- `value` 属性
 	key 属性的快捷方式
 	
-- key 属性
+- `key` 属性
 	表示被标注的对象可以由配置来获取值.
 	1. 当表达式为 `${a.b.c.d}` 时，代表着从全局配置文件中获取 `a.b.c.d` 的值。当在配置文件中未匹配到键值时不会注入
 	2. 当表达式为常量时，直接将常量赋值给被标注的对象
 	3. 默认值 `""` 表示直接使用 `package.class.field` 的形式作为键值在配置文件中进行匹配
 	
-- required 属性
+- `required` 属性
 	该注入的配置项是否是必须的。
 	若该属性为 `true` 时，**且** 在配置文件中 **未找到** 该键值时，扫描器将抛出 `ConfigurationNotFoundException` 异常。默认`false`
 

@@ -1,5 +1,6 @@
 package org.dreamwork.dsi.embedded.httpd.support.websocket;
 
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

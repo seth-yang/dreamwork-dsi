@@ -2,7 +2,7 @@ package org.dreamwork.dsi.embedded.httpd.starter;
 
 import com.google.gson.Gson;
 import org.dreamwork.concurrent.Looper;
-import org.dreamwork.dsi.embedded.httpd.support.websocket.AWebSocket;
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
