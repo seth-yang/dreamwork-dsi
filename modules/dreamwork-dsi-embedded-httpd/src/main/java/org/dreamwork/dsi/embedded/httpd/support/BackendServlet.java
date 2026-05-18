@@ -542,7 +542,11 @@ public class BackendServlet extends HttpServlet {
     }
 
     private void patchPUTParameters (HttpServletRequest request, Map<String, String> map) throws IOException {
-        String contentType = request.getContentType ().toLowerCase ();
+        String contentType = request.getContentType ();
+        if (StringUtil.isEmpty (contentType)) {
+            contentType = "application/x-www-form-urlencoded";
+        }
+        contentType = contentType.toLowerCase ();
         String method = request.getMethod ().toLowerCase ();
         if ("get".equals (method) || "post".equals (method)) {
             Enumeration<String> en = request.getParameterNames ();
