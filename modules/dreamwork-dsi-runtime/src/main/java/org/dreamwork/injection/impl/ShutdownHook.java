@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,6 +23,7 @@ public class ShutdownHook extends Thread {
 
     private ShutdownHook (int port) throws IOException {
         server = new ServerSocket (port, -1, InetAddress.getByName ("127.0.0.1"));  // 仅监听本地
+        server.setSoTimeout (500);
         String temp = System.getProperty ("java.io.tmpdir");
         Path target = Paths.get (temp, ".shutdown-port");
         Files.write (target, String.valueOf (port).getBytes ());
@@ -41,6 +39,7 @@ public class ShutdownHook extends Thread {
                 } else if (logger.isTraceEnabled ()) {
                     logger.trace ("received a connect from {}，ignore this request", address);
                 }
+            } catch (SocketTimeoutException ignored) {
             } catch (IOException ex) {
                 logger.warn (ex.getMessage (), ex);
             }
@@ -93,7 +92,7 @@ public class ShutdownHook extends Thread {
             byte[] buff = Files.readAllBytes (target);
             String s_port = new String (buff);
             int port = Integer.parseInt (s_port);
-            try (Socket socket = new Socket ("127.0.0.1", port)) {
+            try (Socket socket = new Socket (InetAddress.getLocalHost (), port)) {
                 socket.getOutputStream ().write ("Good Bye!".getBytes ());
             }
         }
