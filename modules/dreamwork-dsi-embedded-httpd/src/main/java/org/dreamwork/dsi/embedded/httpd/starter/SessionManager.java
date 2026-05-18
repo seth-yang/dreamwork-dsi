@@ -46,29 +46,33 @@ public class SessionManager {
             logger.trace ("session timeout = {} ms.", timeout);
             logger.trace ("starting the session check monitor");
         }
-        Looper.create (LOOP_NAME, 1, 1);
-        Looper.runInLoop (LOOP_NAME, this::mainLoop);
+        if (enabled) {
+            Looper.create (LOOP_NAME, 1, 1);
+            Looper.runInLoop (LOOP_NAME, this::mainLoop);
+        }
     }
 
     @PreDestroy
     public void stopMonitor () {
-        if (logger.isTraceEnabled ()) {
-            logger.trace ("trying to stop session manager");
-        }
-        running = false;
-        synchronized (LOCKER) {
-            LOCKER.notifyAll ();
-        }
-        try {
-            locker.lockInterruptibly ();
-            c.signalAll ();
-        } catch (InterruptedException ex) {
+        if (enabled) {
             if (logger.isTraceEnabled ()) {
-                logger.warn ("warn in pre-destroy");
-                logger.warn (ex.getMessage (), ex);
+                logger.trace ("trying to stop session manager");
             }
-        } finally {
-            locker.unlock ();
+            running = false;
+            synchronized (LOCKER) {
+                LOCKER.notifyAll ();
+            }
+            try {
+                locker.lockInterruptibly ();
+                c.signalAll ();
+            } catch (InterruptedException ex) {
+                if (logger.isTraceEnabled ()) {
+                    logger.warn ("warn in pre-destroy");
+                    logger.warn (ex.getMessage (), ex);
+                }
+            } finally {
+                locker.unlock ();
+            }
         }
     }
 
