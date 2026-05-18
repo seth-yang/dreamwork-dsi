@@ -14,7 +14,7 @@
         <module>modules/dreamwork-dsi-dbcp</module>
         <module>modules/dreamwork-dsi-embedded-httpd</module>
     </modules>
-    <url>http://maven.apache.org</url>
+    <url>https://maven.apache.org</url>
     <description>
         Dreamwork Simple Injection Framework
     </description>
@@ -46,7 +46,7 @@
 
     <scm>
         <connection>scm:git:git://github.com/seth-yang/dreamwork-dsi</connection>
-        <developerConnection>scm:git:git@hithub.com:seth-yang/dreamwork-dsi</developerConnection>
+        <developerConnection>scm:git:git@github.com:seth-yang/dreamwork-dsi</developerConnection>
         <url>https://github.com/seth-yang/dreamwork-dsi</url>
         <tag>HEAD</tag>
     </scm>
