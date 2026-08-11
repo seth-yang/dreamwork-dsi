@@ -14,6 +14,7 @@ import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -89,6 +90,7 @@ public class SessionManager {
         return ms;
     }
 
+    @SuppressWarnings ("unused")
     public ManagedSession create () {
         return create (null);
     }
@@ -99,18 +101,20 @@ public class SessionManager {
         }
     }
 
+    @SuppressWarnings ("unused")
     public void remove (String key) {
         synchronized (LOCKER) {
             session.remove (key);
         }
     }
 
+    @SuppressWarnings ("all")
     private void mainLoop () {
         while (running) {
             try {
                 locker.lockInterruptibly ();
                 while (running && session.isEmpty ()) {
-                    c.await ();
+                    c.await (10, TimeUnit.SECONDS);
                     if (logger.isTraceEnabled ()) {
                         logger.trace ("session manager awake and running = {}", running);
                     }
