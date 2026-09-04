@@ -5,9 +5,9 @@ import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.websocket.Endpoint;
-import javax.websocket.server.ServerApplicationConfig;
-import javax.websocket.server.ServerEndpointConfig;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.server.ServerApplicationConfig;
+import jakarta.websocket.server.ServerEndpointConfig;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
@@ -94,7 +94,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
 
     private ServerEndpointConfig.Configurator loadConfigurator (Class<? extends ServerEndpointConfig.Configurator> type) {
         try {
-            return type.newInstance ();
+            return type.getConstructor ().newInstance ();
         } catch (Exception ex) {
             throw new RuntimeException (ex);
         }

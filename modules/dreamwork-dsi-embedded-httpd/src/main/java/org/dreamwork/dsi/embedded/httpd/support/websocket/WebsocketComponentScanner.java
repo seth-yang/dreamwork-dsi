@@ -1,9 +1,9 @@
 package org.dreamwork.dsi.embedded.httpd.support.websocket;
 
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
-import org.dreamwork.injection.impl.ClassScanner;
+import org.dreamwork.injection.ClassScanner;
 
-import javax.websocket.Endpoint;
+import jakarta.websocket.Endpoint;
 import java.util.Set;
 
 public class WebsocketComponentScanner extends ClassScanner {

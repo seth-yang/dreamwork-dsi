@@ -52,14 +52,19 @@ public class WebMappedMethod {
 
             parameters = new ArrayList<> (parameterAnnotations.length);
             for (Annotation[] as : parameterAnnotations) {
-                if (as.length > 0) {
+                if (as.length > 0) { // 参数指定了注解
                     for (Annotation an : as) {
-                        if (an instanceof AWebParameter) {
-                            AWebParameter awp = (AWebParameter) an;
-
+                        if (an instanceof AWebParameter awp) {
                             WebParameter wp = new WebParameter ();
                             if (awp.internal ()) {
                                 wp.internal = true;
+                                String name = awp.value ();
+                                if (StringUtil.isEmpty (name)) {
+                                    name = awp.name ();
+                                }
+                                if (StringUtil.isNotEmpty (name)) {
+                                    wp.name = name;
+                                }
                             } else {
                                 String name = awp.name ();
                                 if (StringUtil.isEmpty (name)) {
@@ -94,41 +99,48 @@ public class WebMappedMethod {
                             wp.internal = true;
                             wp.location = ParameterLocation.Internal;
                             parameters.add (wp);
-                        } else if (an instanceof ARequestAttribute) {
+                        } else if (an instanceof ARequestAttribute ra) {
                             // @since 1.1.0
-                            ARequestAttribute ra = (ARequestAttribute) an;
                             WebParameter wp = appendParameter (ParameterType.request_attribute, ra.name (), ra.value ());
                             wp.nullable = ra.nullable ();
-                        } else if (an instanceof ASessionAttribute) {
+                        } else if (an instanceof ASessionAttribute sa) {
                             // @since 1.1.0
-                            ASessionAttribute sa = (ASessionAttribute) an;
                             WebParameter wp = appendParameter (ParameterType.session_attribute, sa.name (), sa.value ());
                             wp.nullable = sa.nullable ();
-                        } else if (an instanceof AFormItem) {
+                        } else if (an instanceof AFormItem fi) {
                             // @since 1.1.1
-                            AFormItem fi = (AFormItem) an;
                             WebParameter wp = createWebParameter (fi.type (), ParameterLocation.QueryString, fi.name (), fi.value ());
                             wp.nullable = fi.nullable ();
                             String dv = fi.defaultValue ();
                             if (!StringUtil.isEmpty (dv) && !"$$EMPTY$$".equals (dv)) {
                                 wp.defaultValue = dv;
                             }
-                        } else if (an instanceof APathVariable) {
+                        } else if (an instanceof APathVariable pv) {
                             // @since 1.1.1
-                            APathVariable pv = (APathVariable) an;
                             createWebParameter (pv.type (), ParameterLocation.Path, pv.name (), pv.value ());
-                        } else if (an instanceof AHeaderItem) {
+                        } else if (an instanceof AHeaderItem hp) {
                             // @since 1.1.1
-                            AHeaderItem hp = (AHeaderItem) an;
                             WebParameter wp = createWebParameter (hp.type (), ParameterLocation.Header, hp.name (), hp.value ());
                             wp.nullable = hp.nullable ();
-                        } else if (an instanceof AManagedSessionAttribute) {
-                            AManagedSessionAttribute msa = (AManagedSessionAttribute) an;
+                        } else if (an instanceof AManagedSessionAttribute msa) {
                             WebParameter wp = appendParameter (ParameterType.managed_session_attribute, msa.name (), msa.value ());
                             wp.nullable = msa.nullable ();
+                        } else if (an instanceof AUploadedFile uf) {
+                            WebParameter wp = new WebParameter ();
+                            wp.type = ParameterType.uploaded_file;
+                            wp.location = ParameterLocation.Internal;
+                            String name = uf.value ();
+                            if (StringUtil.isEmpty (name)) {
+                                name = uf.name ();
+                            }
+                            if (StringUtil.isNotEmpty (name)) {
+                                wp.name = name;
+                            }
+                            wp.nullable = uf.nullable ();
+                            parameters.add (wp);
                         }
                     }
-                } else {
+                } else { // 参数未指定注解，默认为内部类型
                     WebParameter wp = new WebParameter ();
                     wp.internal = true;
                     wp.location = ParameterLocation.Internal;

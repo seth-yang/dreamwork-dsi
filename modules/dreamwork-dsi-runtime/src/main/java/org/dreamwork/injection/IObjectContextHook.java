@@ -1,7 +1,5 @@
 package org.dreamwork.injection;
 
-import org.dreamwork.injection.impl.ClassScanner;
-
 import java.util.Collections;
 import java.util.Map;
 

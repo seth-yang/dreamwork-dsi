@@ -1,6 +1,6 @@
 package org.dreamwork.injection.impl;
 
-import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ClassScanner;
 
 import javax.management.InstanceAlreadyExistsException;
 import java.util.HashMap;

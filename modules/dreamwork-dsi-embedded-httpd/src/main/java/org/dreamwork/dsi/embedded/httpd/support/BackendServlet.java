@@ -1,42 +1,38 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
-import com.google.gson.Gson;
+import jakarta.servlet.http.*;
 import org.apache.catalina.core.ApplicationServletRegistration;
 import org.apache.catalina.core.StandardWrapper;
 import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
-import org.dreamwork.gson.GsonHelper;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.util.CollectionCreator;
 import org.dreamwork.util.IOUtil;
+import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.*;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @WebServlet (loadOnStartup = 1)
 public class BackendServlet extends HttpServlet {
-    private static final String UTF_8 = "utf-8";
+    private static final Charset UTF_8 = StandardCharsets.UTF_8;
     private static final String KEY_MSA = "X-Managed-Session";
     private final Logger logger = LoggerFactory.getLogger (BackendServlet.class);
 
@@ -98,13 +94,15 @@ public class BackendServlet extends HttpServlet {
 
         if (delegateEnabled) {
             try {
-                Class<ApplicationServletRegistration> type = ApplicationServletRegistration.class;
-                Field field = type.getDeclaredField ("wrapper");
-                if (!field.isAccessible ()) {
-                    field.setAccessible (true);
-                }
                 Map<String, ? extends ServletRegistration> mappings = getServletContext ().getServletRegistrations ();
                 ServletRegistration base = mappings.get ("default");
+
+                Class<ApplicationServletRegistration> type = ApplicationServletRegistration.class;
+                Field field = type.getDeclaredField ("wrapper");
+                if (!field.canAccess (base)) {
+                    field.setAccessible (true);
+                }
+
                 StandardWrapper wrapper = (StandardWrapper) field.get (base);
                 defaultServlet = wrapper.getServlet ();
 
@@ -190,7 +188,7 @@ public class BackendServlet extends HttpServlet {
 
         Object bean = context.getBean (handler.beanName);
         Object value;
-        Gson g = new Gson ();
+
         HttpContext ctx = null;
         try {
             request.getSession ().getId ();
@@ -224,10 +222,10 @@ public class BackendServlet extends HttpServlet {
                 if (handler.wrapped) {
                     // since 1.1.0 自动包裹固定结构的json
                     WebJsonResult wjr = new WebJsonResult (0, "success", value);
-                    response.getWriter ().write (g.toJson (wjr));
+                    response.getWriter ().write (JsonHelper.toJson (wjr));
                 } else if (value != null) {
                     // since 1.1.0 输出原始数据的 json 格式
-                    response.getWriter ().write (g.toJson (value));
+                    response.getWriter ().write (JsonHelper.toJson (value));
                 }
             } else if (value != null) {
                 response.getWriter ().write (value.toString ());
@@ -237,19 +235,17 @@ public class BackendServlet extends HttpServlet {
             response.reset ();
             response.setContentType (handler.method.contentType);
             if (handler.method.contentType.contains ("json")) {
-                if (t instanceof WebHandlerException) {
-                    WebHandlerException whe = (WebHandlerException) t;
+                if (t instanceof WebHandlerException whe) {
                     if (whe.httpStatus >= 200 && whe.httpStatus < 600) {
                         response.setStatus (whe.httpStatus);
                     }
                     WebJsonResult wjr = new WebJsonResult (whe.code, whe.getMessage (), null);
-                    response.getWriter ().write (g.toJson (wjr));
+                    response.getWriter ().write (JsonHelper.toJson (wjr));
                 } else {
                     throw new ServletException (t);
                 }
             } else {
-                if (t instanceof WebHandlerException) {
-                    WebHandlerException whe = (WebHandlerException) t;
+                if (t instanceof WebHandlerException whe) {
                     if (whe.httpStatus >= 200 && whe.httpStatus < 600) {
                         response.setStatus (whe.httpStatus);
                     }
@@ -264,7 +260,7 @@ public class BackendServlet extends HttpServlet {
             response.setContentType (handler.method.contentType);
             if (handler.method.contentType.contains ("json")) {
                 response.setStatus (HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter ().write (g.toJson (
+                response.getWriter ().write (JsonHelper.toJson (
                         CollectionCreator.asMap (
                                 "code", HttpServletResponse.SC_BAD_REQUEST,
                                 "error", re.getMessage ()
@@ -279,7 +275,7 @@ public class BackendServlet extends HttpServlet {
     }
 
     private Object[] parseParameters (HttpServletRequest request, HttpServletResponse response,
-                                      WebHandler handler, Map<String, String> values) throws IOException {
+                                      WebHandler handler, Map<String, String> values) throws IOException, ServletException {
         int n = handler.method.parameters.size ();
         Object[] args = new Object[n];
         Class<?>[] types = handler.method.method.getParameterTypes ();
@@ -316,6 +312,23 @@ public class BackendServlet extends HttpServlet {
                         response.setHeader (KEY_MSA, session.id);
                     }
                     args[i] = session;
+                } else if (type == Part.class) { // 文件上传
+                    // @since 4.0.0
+                    // todo: 实现它
+                    if (wp == null || StringUtil.isEmpty (wp.name)) {
+                        // 未提供名称，通常是因为只上传一个文件
+                        Optional<Part> any = request.getParts ().stream ().findAny ();
+                        if (any.isPresent ()) {
+                            args[i] = any.get ();
+                        }
+                    } else {
+                        Part p = request.getPart (wp.name);
+                        if (p != null) {
+                            args[i] = p;
+                        } else if (!wp.nullable) {
+                            throw new ServletException ("parameter[" + wp.name + "] needs value, but got null!");
+                        }
+                    }
                 } else {
                     throw new IllegalArgumentException ("unsupported internal type: " + type);
                 }
@@ -441,6 +454,14 @@ public class BackendServlet extends HttpServlet {
                         }
                         args[i] = o;
                         break;
+
+                    case uploaded_file:
+                        o = request.getPart (wp.name);
+                        if (o == null && !wp.nullable) {
+                            throw new RuntimeException ("parameter [uploaded_file." + wp.name + "] needs value, but meet null!");
+                        }
+                        args[i] = o;
+                        break;
                 }
             }
         }
@@ -508,7 +529,7 @@ public class BackendServlet extends HttpServlet {
         if (type == java.sql.Timestamp.class && !StringUtil.isEmpty (expression)) {
             return new java.sql.Timestamp (toDate (expression).getTime ());
         }
-        return StringUtil.isEmpty (expression) ? null : GsonHelper.getGson ().fromJson (expression, type);
+        return StringUtil.isEmpty (expression) ? null : JsonHelper.fromJson (expression, type);
     }
 
     private Date toDate (String expression) {

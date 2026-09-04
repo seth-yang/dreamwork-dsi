@@ -6,9 +6,9 @@ import org.dreamwork.injection.IObjectContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpSession;
-import javax.websocket.*;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.*;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;

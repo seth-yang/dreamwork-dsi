@@ -1,6 +1,6 @@
 package org.dreamwork.dsi.embedded.httpd.support.upload;
 
-import org.apache.tomcat.util.http.fileupload.FileItem;
+import jakarta.servlet.http.Part;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class MultipartUploadPayload implements Serializable {
     private final Map<String, String> map = new HashMap<> ();
-    private final List<FileItem> files = new ArrayList<> ();
+    private final List<Part> files = new ArrayList<> ();
 
     public void setParameter (String name, String value) {
         map.put (name, value);
@@ -24,11 +24,11 @@ public class MultipartUploadPayload implements Serializable {
         return map.containsKey (name);
     }
 
-    public void addFile (FileItem file) {
+    public void addFile (Part file) {
         files.add (file);
     }
 
-    public List<FileItem> getFiles () {
+    public List<Part> getFiles () {
         return files;
     }
 }

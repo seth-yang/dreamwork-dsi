@@ -8,4 +8,6 @@ public enum ParameterType {
     session_attribute,
     /** @since 1.1.1 */
     managed_session_attribute,
+    /** @since 3.0.0 */
+    uploaded_file,
 }

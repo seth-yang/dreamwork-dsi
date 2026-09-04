@@ -1,23 +1,20 @@
 package org.dreamwork.injection.impl;
 
-import com.google.gson.Gson;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.*;
+import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -168,8 +165,7 @@ public class SimpleObjectContext implements IObjectContext {
                         Object o = mappedByType.get (type);
                         if (o == bean) {
                             temp.add (type);
-                        } else if (o instanceof InnerList) {
-                            InnerList il = (InnerList) o;
+                        } else if (o instanceof InnerList il) {
                             il.remove (bean);
                             if (il.isEmpty ()) {
                                 temp.add (type);
@@ -241,9 +237,8 @@ public class SimpleObjectContext implements IObjectContext {
                     } else {
                         // 曾经映射过
                         Object o = mappedByType.get (type);
-                        if (o instanceof InnerList) {
+                        if (o instanceof InnerList il) {
                             // 如果类型索引的是一个列表，往列表中添加实例
-                            InnerList il = (InnerList) o;
                             if (!il.contains (bean)) {
                                 il.add (bean);
                             }
@@ -532,8 +527,14 @@ public class SimpleObjectContext implements IObjectContext {
             throw new InstanceNotFoundException ("field " + field + " cannot be injected. The annotated object was not registered.");
         }
 
-        if (!field.isAccessible ()) {
-            field.setAccessible (true);
+        if (!field.canAccess (bean)) {
+            try {
+                field.setAccessible (true);
+            } catch (InaccessibleObjectException ex) {
+                logger.error ("cannot access field {}", field, ex);
+                logger.error (ScannerHelper.createAddModuleInfoMessage (field));
+                throw ex;
+            }
         }
 
         field.set (bean, value);
@@ -638,7 +639,7 @@ public class SimpleObjectContext implements IObjectContext {
     /**
      * 销毁一个实例。
      *
-     * <p>如果给定的实例有一个方法被标注为 {@link javax.annotation.PreDestroy}，在销毁这个对象前必须调用</p>
+     * <p>如果给定的实例有一个方法被标注为 {@link jakarta.annotation.PreDestroy}，在销毁这个对象前必须调用</p>
      *
      * 销毁一个实例同时也会删除将这个实例在托管容器内的引用
      * @param bean 对象实例
@@ -740,7 +741,7 @@ public class SimpleObjectContext implements IObjectContext {
      */
     static void configureFields (IConfiguration conf, Object bean, Collection<Field> fields) throws IllegalAccessException {
         final Logger logger = LoggerFactory.getLogger (SimpleObjectContext.class);
-        Gson g = new Gson ();
+
         for (Field field : fields) {
             AConfigured ac = field.getAnnotation (AConfigured.class);
             String key = ac.value ();
@@ -769,17 +770,22 @@ public class SimpleObjectContext implements IObjectContext {
                     value = expression;
                 } else {
                     try {
-                        value = g.fromJson (expression, type);
+                        value = JsonHelper.fromJson (expression, type);
                     } catch (Exception ex) {
                         logger.error ("cannot convert {} to {} when injecting {}", expression, type, field);
                         throw new RuntimeException (ex);
                     }
                 }
                 if (value != null) {
-                    if (!field.isAccessible ()) {
-                        field.setAccessible (true);
+                    if (!field.canAccess (bean)) {
+                        try {
+                            field.setAccessible (true);
+                        } catch (InaccessibleObjectException ex) {
+                            logger.warn (ex.getMessage (), ex);
+                            logger.warn (ScannerHelper.createAddModuleInfoMessage (field));
+                            throw ex;
+                        }
                     }
-
                     field.set (bean, value);
                 }
             } else if (ac.required ()) {

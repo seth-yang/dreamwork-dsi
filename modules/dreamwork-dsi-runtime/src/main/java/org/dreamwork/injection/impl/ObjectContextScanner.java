@@ -2,15 +2,18 @@ package org.dreamwork.injection.impl;
 
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
+import org.dreamwork.injection.ClassScanner;
 import org.dreamwork.injection.IInjectResolvedProcessor;
+import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import javax.management.IntrospectionException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
 import java.util.Set;
 
@@ -34,7 +37,7 @@ public class ObjectContextScanner extends ClassScanner {
     @Override
     protected void onFound (String name, Class<?> type, Set<Wrapper> wrappers) throws Exception {
         String beanName = Character.toLowerCase (name.charAt (0)) + name.substring (1);
-        Object bean = type.newInstance ();
+        Object bean = type.getConstructor ().newInstance ();
         context.register (beanName, bean);
 
         Wrapper w = new Wrapper ();
@@ -59,8 +62,13 @@ public class ObjectContextScanner extends ClassScanner {
                     exposeName = rt.getSimpleName ();
                     exposeName = Character.toLowerCase (exposeName.charAt (0)) + exposeName.substring (1);
                 }
-                if (!mw.method.isAccessible ()) {
-                    mw.method.setAccessible (true);
+                if (!mw.method.canAccess (bean)) {
+                    try {
+                        mw.method.setAccessible (true);
+                    } catch (InaccessibleObjectException ex) {
+                        logger.warn ("cannot access method {}", mw.method);
+                        logger.error (ScannerHelper.createAddModuleInfoMessage (mw.method));
+                    }
                 }
                 Object o = mw.method.invoke (bean);
                 if (o == null) {

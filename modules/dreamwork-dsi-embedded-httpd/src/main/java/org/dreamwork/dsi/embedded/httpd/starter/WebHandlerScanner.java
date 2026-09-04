@@ -10,8 +10,8 @@ import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Resource;
-import javax.servlet.ServletException;
+import jakarta.annotation.Resource;
+import jakarta.servlet.ServletException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;

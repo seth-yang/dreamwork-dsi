@@ -80,7 +80,7 @@ public interface IObjectContext extends IDisposable {
      * @param bean 对象实例
      * @throws InstanceNotFoundException 当自动注入发生时，无法从容器中找到对应的资源，将抛出这个异常
      * @throws IllegalAccessException    当自动注入发送时，无法将资源注入目标时抛出这个异常
-     * @throws InvocationTargetException 当实例中有被标注为 {@link javax.annotation.PostConstruct} 的方法调用失败时抛出
+     * @throws InvocationTargetException 当实例中有被标注为 {@link jakarta.annotation.PostConstruct} 的方法调用失败时抛出
      * @throws InstantiationException    当无法实例化某个类型时抛出
      * @throws IntrospectionException    当发送 java 内省错误时抛出
      * @throws InstanceAlreadyExistsException 当名称重复时抛出
@@ -99,7 +99,7 @@ public interface IObjectContext extends IDisposable {
      * @param bean 对象实例
      * @throws InstanceNotFoundException 当自动注入发生时，无法从容器中找到对应的资源，将抛出这个异常
      * @throws IllegalAccessException    当自动注入发送时，无法将资源注入目标时抛出这个异常
-     * @throws InvocationTargetException 当实例中有被标注为 {@link javax.annotation.PostConstruct} 的方法调用失败时抛出
+     * @throws InvocationTargetException 当实例中有被标注为 {@link jakarta.annotation.PostConstruct} 的方法调用失败时抛出
      * @throws InstantiationException    当无法实例化某个类型时抛出
      * @throws IntrospectionException    当发送 java 内省错误时抛出
      */

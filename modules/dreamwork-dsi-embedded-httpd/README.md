@@ -49,7 +49,7 @@ the dsi hook of dreamwork simple injection for start an embedded-httpd
 ## 托管的 Web 请求处理程序
 
 ### WebHandler
-任意一个同时被 `@javax.annotation.Resource` 和 `@org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler` 标注的类，且该类位于扫描器扫描路径下，
+任意一个同时被 `@jakarta.annotation.Resource` 和 `@org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler` 标注的类，且该类位于扫描器扫描路径下，
 都将自动被识别为 Web 请求处理程序，以下称为 `WebHandler`. 一个典型的例子：
 
 ```java
@@ -59,9 +59,9 @@ import org.dreamwork.dsi.embedded.httpd.annotation.*;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.util.CollectionCreator;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 
 @Resource
 @AWebHandler ("/first")
@@ -150,15 +150,16 @@ public abstract class AbstractWebSocket<T extends IWebsocketCommand>
 ```java
 package org.dreamwork.example.dsi.web.websockets;
 
-import com.google.gson.Gson;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
 import org.dreamwork.injection.AConfigured;
+import org.dreamwork.util.JsonHelper;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import org.dreamwork.util.JsonHelper;
 
 @AWebSocket ("/ws/example")
 public class MyWebSocket extends AbstractWebSocket<MyWSCommand> {
@@ -167,7 +168,7 @@ public class MyWebSocket extends AbstractWebSocket<MyWSCommand> {
 
     @AConfigured ("${my.app.config.key}")
     private String anyConfigItem;           // 任何一个可注入的配置项
-    
+
     private String id;
 
     @PostConstruct
@@ -182,14 +183,14 @@ public class MyWebSocket extends AbstractWebSocket<MyWSCommand> {
 
     @Override
     protected String cast (MyWSCommand command) {
-        return command == null ? "" : new Gson ().toJson (command);
+        return command == null ? "" : JsonHelper.toJson (command);
     }
 
     @Override
     protected MyWSCommand parse (String content) {
-        return content == null || content.isEmpty () ? 
-                null : 
-                new Gson ().fromJson (content, MyWSCommand.class);
+        return content == null || content.isEmpty () ?
+                null :
+                new JsonHelper.fromJson (content, MyWSCommand.class);
     }
 
     @Override
@@ -230,11 +231,11 @@ package org.dreamwork.example.dsi.web.servlets;
 import org.dreamwork.dsi.embedded.httpd.support.InjectableServlet;
 import org.dreamwork.injection.AConfigured;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet ("/my-endpoint/*")
 public class MyServlet extends InjectableServlet {
@@ -267,7 +268,7 @@ package org.dreamwork.example.dsi.web.servlets;
 
 import org.dreamwork.dsi.embedded.httpd.support.upload.ResourceServlet;
 
-import javax.servlet.annotation.WebServlet;
+import jakarta.servlet.annotation.WebServlet;
 
 @WebServlet ({"/uploader", "/resources/*"})
 public class SimpleResourceUploadServlet extends ResourceServlet { }
@@ -286,15 +287,15 @@ import org.dreamwork.util.CollectionHelper;
 import org.dreamwork.util.PathFilter;
 import org.dreamwork.util.StringUtil;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.annotation.WebFilter;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashSet;
 

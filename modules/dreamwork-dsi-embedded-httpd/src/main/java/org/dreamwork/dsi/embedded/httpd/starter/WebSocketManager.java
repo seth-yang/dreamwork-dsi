@@ -1,6 +1,5 @@
 package org.dreamwork.dsi.embedded.httpd.starter;
 
-import com.google.gson.Gson;
 import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
@@ -8,18 +7,26 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.ReferenceUtil;
+import org.dreamwork.util.StringUtil;
 import org.dreamwork.util.ThreadHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.io.IOException;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import static org.dreamwork.util.CollectionHelper.isNotEmpty;
 
 /**
  * Websocket 管理器
@@ -101,12 +108,11 @@ public class WebSocketManager {
      * 在控制台显示当前已缓存的消息，主要用于调试
      */
     public static void showCache () {
-        Gson g = new Gson ();
         System.out.println ("messages: {");
         instance.messages.forEach ((key, list) -> {
             System.out.printf ("    %s: [%n", key);
             list.forEach (w -> {
-                System.out.printf ("        - { %s }%n", g.toJson (w.message));
+                System.out.printf ("        - { %s }%n", JsonHelper.toJson (w.message));
             });
             System.out.println ("    ]");
         });
@@ -114,7 +120,7 @@ public class WebSocketManager {
     }
 
     /////////////////////// instance fields ////////////////////////////////
-    private transient boolean running = true;
+    private volatile boolean running = true;
     private final Object LOCKER = new byte[0], SENDER_LOCKER = new byte[0];
     /** 缓存的 websocket 实例 */
     private final Map<Class<? extends AbstractWebSocket<? extends IWebsocketCommand>>, Set<WebsocketWrapper<? extends IWebsocketCommand>>> cache = new ConcurrentHashMap<> ();
@@ -199,8 +205,12 @@ public class WebSocketManager {
                                 try {
                                     sockets.forEach (socket -> {
                                         for (MessageWrapper<IWebsocketCommand> wrapper : copy) {
-                                            if (socket.matches (wrapper.id, wrapper.message)) {
-                                                socket.send (wrapper.message);
+                                            try {
+                                                if (socket.matches (wrapper.id, wrapper.message)) {
+                                                    socket.send (wrapper.message);
+                                                }
+                                            } catch (Throwable ex) {
+                                                logger.warn (ex.getMessage (), ex);
                                             }
                                         }
                                     });
@@ -255,16 +265,48 @@ public class WebSocketManager {
         fields.forEach (field -> {
             if (field.isAnnotationPresent (Resource.class)) {
                 Object o = context.getBean (field.getType ());
-                if (!field.isAccessible ()) {
-                    field.setAccessible (true);
-                }
+
                 try {
-                    field.set (socket, o);
+                    if (field.canAccess (socket)) {
+                        field.set (socket, o);
+                    }
                 } catch (Exception ex) {
                     logger.warn (ex.getMessage (), ex);
                 }
             }
         });
+
+        // 自动注入setter
+        Set<AccessibleObject> setters = ReferenceUtil.getSetters (type).values ().stream ()
+                .filter (m -> m.isAnnotationPresent (Resource.class))
+                .collect (Collectors.toSet ());
+        if (isNotEmpty (setters)) {
+            for (AccessibleObject ao : setters) {
+                Method setter = (Method) ao;
+                Resource res = setter.getAnnotation (Resource.class);
+                Object value = null;
+                String name = res.lookup ();
+                if (StringUtil.isEmpty (name)) {
+                    name = res.mappedName ();
+                }
+                if (StringUtil.isEmpty (name)) {
+                    name = res.name ();
+                }
+                if (StringUtil.isNotEmpty (name)) {
+                    value = context.getBean (name);
+                } else {
+                    value = context.getBean (setter.getParameterTypes ()[0]);
+                }
+
+                if (value != null && setter.canAccess (socket)) {
+                    try {
+                        setter.invoke (socket, value);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        logger.warn ("cannot inject value to setter: {}", setter);
+                    }
+                }
+            }
+        }
     }
 
     /**

@@ -4,9 +4,9 @@ import org.dreamwork.injection.IObjectContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
 
 import static org.dreamwork.dsi.embedded.httpd.support.WebComponentHelper.*;
 

@@ -2,7 +2,7 @@ package org.dreamwork.dsi.embedded.httpd.annotation;
 
 import org.dreamwork.dsi.embedded.httpd.support.websocket.WebSocketHttpConfigurator;
 
-import javax.websocket.server.ServerEndpointConfig;
+import jakarta.websocket.server.ServerEndpointConfig;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

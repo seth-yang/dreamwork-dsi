@@ -10,12 +10,12 @@
     <parent>
         <groupId>io.github.seth-yang</groupId>
         <artifactId>dreamwork-dsi-parent</artifactId>
-        <version>2.1.2</version>
+        <version>3.0.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <properties>
-        <tomcat.version>9.0.73</tomcat.version>
+        <tomcat.version>11.0.25</tomcat.version>
     </properties>
 
     <dependencies>
@@ -29,16 +29,19 @@
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
             <version>${tomcat.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-annotations-api</artifactId>
-            <version>${tomcat.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-logging-juli</artifactId>
-            <version>9.0.0.M6</version>
+            <exclusions>
+                <!--
+                    tomcat-embed-core transitively brings org.apache.tomcat:tomcat-annotations-api,
+                    whose Automatic-Module-Name is "jakarta.annotation" and exports the same package
+                    as jakarta.annotation-api (declared in the parent pom). Two modules claiming the
+                    same name cause "Ambiguous module reference: jakarta.annotation" in module-info.java.
+                    We rely on jakarta.annotation-api 3.0.0 from the parent instead.
+                -->
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-annotations-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>

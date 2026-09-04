@@ -24,17 +24,17 @@ import org.dreamwork.injection.impl.SimpleObjectContextFactory;
  * </p>
  *
  * <h2>受托管对象</h2>
- * {@link javax.annotation.Resource} 标注用来表示一个对象/资源是 <strong><i>受托管</i></strong> 的。 托管容器将自动
- * 配置和管理这些对象实例。当 {@link javax.annotation.Resource} 用来标注: <ul>
+ * {@link jakarta.annotation.Resource} 标注用来表示一个对象/资源是 <strong><i>受托管</i></strong> 的。 托管容器将自动
+ * 配置和管理这些对象实例。当 {@link jakarta.annotation.Resource} 用来标注: <ul>
  * <li>一个类时，意味着这个类将被作为受托管资源配置到托管容器内</li>
  * <li>一个 {@code java getter} 时，意味着这个 getter 的返回值将被自动配置到容器内</li>
  * <li>一个 {@code java setter} 时，意味着从容器内获取对应的资源并作为 setter 的参数注入到对象内</li>
  * <li>一个 {@code 字段} 时，意味着从容器内获取对应的资源输入到这个字段</li>
  * </ul>
- * 每个被 {@link javax.annotation.Resource} 标注的类，<strong>最多有一个</strong>方法被<ul>
- * <li>{@link javax.annotation.PostConstruct} 标注，意味着这个类在被配置到容器后将自动调用。这个方法的
+ * 每个被 {@link jakarta.annotation.Resource} 标注的类，<strong>最多有一个</strong>方法被<ul>
+ * <li>{@link jakarta.annotation.PostConstruct} 标注，意味着这个类在被配置到容器后将自动调用。这个方法的
  * 签名必须是<pre>public void &lt;methodName&gt; ()</pre></li>
- * <li>{@link javax.annotation.PreDestroy} 标注，意味着这个类从容器内删除前将自动调用。这个方法的签名必须是
+ * <li>{@link jakarta.annotation.PreDestroy} 标注，意味着这个类从容器内删除前将自动调用。这个方法的签名必须是
  * <pre>public void &lt;methodName&gt; ()</pre></li>
  * </ul>
  *

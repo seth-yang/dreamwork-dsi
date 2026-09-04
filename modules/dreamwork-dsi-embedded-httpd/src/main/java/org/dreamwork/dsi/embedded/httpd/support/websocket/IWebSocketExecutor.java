@@ -3,8 +3,8 @@ package org.dreamwork.dsi.embedded.httpd.support.websocket;
 import org.dreamwork.dsi.embedded.httpd.starter.WebSocketManager;
 import org.dreamwork.injection.IObjectContext;
 
-import javax.websocket.CloseReason;
-import javax.websocket.Session;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.Session;
 import java.io.IOException;
 
 /**

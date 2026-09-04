@@ -1,4 +1,4 @@
-package org.dreamwork.injection.impl;
+package org.dreamwork.injection;
 
 import org.dreamwork.util.ResourceUtil;
 import org.slf4j.Logger;

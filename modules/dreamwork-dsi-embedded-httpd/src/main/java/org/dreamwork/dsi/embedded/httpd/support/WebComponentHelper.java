@@ -1,17 +1,17 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
-import com.google.gson.Gson;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import jakarta.annotation.Resources;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.annotation.Resources;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,7 +26,6 @@ public class WebComponentHelper {
     }
 
     public static<T> void injectFields (T instance, Cache c) throws InstantiationException {
-        Gson g = new Gson ();
         if (!c.fields.isEmpty ()) { // 注入字段
             for (Field field : c.fields) {
                 Class<?> ft = field.getType ();
@@ -44,10 +43,12 @@ public class WebComponentHelper {
                 }
                 if (target != null) {
                     try {
-                        if (!field.isAccessible ()) {
-                            field.setAccessible (true);
+                        if (field.canAccess (instance)) {
+                            field.set (instance, target);
+                        } else {
+                            logger.error ("cannot access field: {}", field);
+                            throw new InstantiationException ("cannot inject field: " + field.getName ());
                         }
-                        field.set (instance, target);
                     } catch (Exception ex) {
                         throw new InstantiationException ("cannot inject field: " + field.getName ());
                     }
@@ -68,17 +69,16 @@ public class WebComponentHelper {
                         target = expression;
                     } else {
                         try {
-                            target = g.fromJson (expression, ft);
+                            target = JsonHelper.fromJson (expression, ft);
                         } catch (Exception ex) {
                             logger.error ("cannot convert {} to {} when injecting {}", expression, field.getDeclaringClass (), field);
                             throw new RuntimeException (ex);
                         }
                     }
                     try {
-                        if (!field.isAccessible ()) {
-                            field.setAccessible (true);
+                        if (field.canAccess (instance)) {
+                            field.set (instance, target);
                         }
-                        field.set (instance, target);
                     } catch (Exception ex) {
                         throw new InstantiationException ("cannot inject field: " + field.getName ());
                     }
@@ -92,9 +92,11 @@ public class WebComponentHelper {
     public static<T> void injectMethod (T instance, Cache c) throws InstantiationException {
         if (!c.methods.isEmpty ()) {
             for (Method method : c.methods) {
-                if (!method.isAccessible ()) {
-                    method.setAccessible (true);
+                if (!method.canAccess (instance)) {
+                    logger.error ("cannot access method: {}", method);
+                    throw new InstantiationException ("cannot inject method: "  + method + ", cause of access denied");
                 }
+
                 int count = method.getParameterCount ();
                 if (count == 1 && method.isAnnotationPresent (Resources.class)) {
                     Resource res = method.getAnnotation (Resource.class);

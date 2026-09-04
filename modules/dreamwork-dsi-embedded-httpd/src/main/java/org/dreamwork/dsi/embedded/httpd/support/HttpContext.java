@@ -2,10 +2,10 @@ package org.dreamwork.dsi.embedded.httpd.support;
 
 import org.dreamwork.util.IDisposable;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 public class HttpContext implements IDisposable {
     private static final ThreadLocal<HttpContext> ref = new ThreadLocal<> ();

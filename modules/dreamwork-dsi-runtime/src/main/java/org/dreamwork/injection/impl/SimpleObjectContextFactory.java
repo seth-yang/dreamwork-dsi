@@ -1,12 +1,12 @@
 package org.dreamwork.injection.impl;
 
-import com.google.gson.Gson;
 import org.dreamwork.cli.Argument;
 import org.dreamwork.cli.ArgumentParser;
 import org.dreamwork.config.PropertyConfiguration;
 import org.dreamwork.injection.*;
 import org.dreamwork.util.FileInfo;
 import org.dreamwork.util.IOUtil;
+import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ import java.util.jar.JarFile;
 
 import static org.dreamwork.injection.IObjectContext.CONTEXT_ANNOTATION_KEY;
 import static org.dreamwork.injection.IObjectContext.CONTEXT_DESCRIBER;
-import static org.dreamwork.injection.impl.ScannerHelper.fillPackageNames;
+import static org.dreamwork.injection.ScannerHelper.fillPackageNames;
 
 /**
  * 对象托管容器的工厂
@@ -52,17 +52,17 @@ import static org.dreamwork.injection.impl.ScannerHelper.fillPackageNames;
  * </p>
  *
  * <h2>受托管对象</h2>
- * {@link javax.annotation.Resource} 标注用来表示一个对象/资源是 <strong><i>受托管</i></strong> 的。 托管容器将自动
- * 配置和管理这些对象实例。当 {@link javax.annotation.Resource} 用来标注: <ul>
+ * {@link jakarta.annotation.Resource} 标注用来表示一个对象/资源是 <strong><i>受托管</i></strong> 的。 托管容器将自动
+ * 配置和管理这些对象实例。当 {@link jakarta.annotation.Resource} 用来标注: <ul>
  * <li>一个类时，意味着这个类将被作为受托管资源配置到托管容器内</li>
  * <li>一个 {@code java getter} 时，意味着这个 getter 的返回值将被自动配置到容器内</li>
  * <li>一个 {@code java setter} 时，意味着从容器内获取对应的资源并作为 setter 的参数注入到对象内</li>
  * <li>一个 {@code 字段} 时，意味着从容器内获取对应的资源输入到这个字段</li>
  * </ul>
- * 每个被 {@link javax.annotation.Resource} 标注的类，<strong>最多有一个</strong>方法被<ul>
- * <li>{@link javax.annotation.PostConstruct} 标注，意味着这个类在被配置到容器后将自动调用。这个方法的
+ * 每个被 {@link jakarta.annotation.Resource} 标注的类，<strong>最多有一个</strong>方法被<ul>
+ * <li>{@link jakarta.annotation.PostConstruct} 标注，意味着这个类在被配置到容器后将自动调用。这个方法的
  * 签名必须是<pre>public void &lt;methodName&gt; ()</pre></li>
- * <li>{@link javax.annotation.PreDestroy} 标注，意味着这个类从容器内删除前将自动调用。这个方法的签名必须是
+ * <li>{@link jakarta.annotation.PreDestroy} 标注，意味着这个类从容器内删除前将自动调用。这个方法的签名必须是
  * <pre>public void &lt;methodName&gt; ()</pre></li>
  * </ul>
  *
@@ -293,7 +293,7 @@ public class SimpleObjectContextFactory {
                 }
             }
             if (hook == null) {
-                hook = (IObjectContextHook) type.newInstance ();
+                hook = (IObjectContextHook) type.getConstructor ().newInstance ();
             }
             if (logger.isTraceEnabled ()) {
                 logger.trace ("found a hook: {}", className);
@@ -315,7 +315,7 @@ public class SimpleObjectContextFactory {
                 LazyScanner lazy = root.getBean (LazyScanner.class);
                 lazy.merge (dict);
             }
-        } catch (InstantiationException | IllegalAccessException ex) {
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException ex) {
             logger.warn ("cannot instantiate class: {}", className);
             if (logger.isTraceEnabled ()) {
                 logger.warn (ex.getMessage (), ex);
@@ -353,10 +353,8 @@ public class SimpleObjectContextFactory {
 
     private PropertyConfiguration initConfiguration (ClassLoader loader, String... args) throws IOException {
         Map<String, Argument> map = new HashMap<> ();
-        Gson g = new Gson ();
-
         // 加载缺省的参数定义
-        load (loader, g, map);
+        load (loader, map);
 
         AInjectionContext ic = type.getAnnotation (AInjectionContext.class);
         // 查找参数描述的 json 文件
@@ -364,7 +362,7 @@ public class SimpleObjectContextFactory {
         for (String definition : definitions) {
             try (InputStream in = findArgumentDefinition (loader, definition)) {
                 if (in != null) {
-                    load (g, map, in);
+                    load (map, in);
                 }
             }
         }
@@ -479,9 +477,9 @@ public class SimpleObjectContextFactory {
         return props;
     }
 
-    private void load (Gson g, Map<String, Argument> map, InputStream in) throws IOException {
+    private void load (Map<String, Argument> map, InputStream in) throws IOException {
         String content = new String (IOUtil.read (in), StandardCharsets.UTF_8);
-        List<Argument> list = g.fromJson (content, Argument.AS_LIST);
+        List<Argument> list = JsonHelper.fromJson (content, Argument.AS_LIST);
         list.forEach (item -> {
             String key = item.shortOption;
             if (StringUtil.isEmpty (key)) {
@@ -493,10 +491,10 @@ public class SimpleObjectContextFactory {
         });
     }
 
-    private void load (ClassLoader loader, Gson g, Map<String, Argument> map) {
+    private void load (ClassLoader loader, Map<String, Argument> map) {
         try (InputStream in = loader.getResourceAsStream ("default-arguments.json")) {
             if (in != null) {
-                load (g, map, in);
+                load (map, in);
             }
         } catch (Exception ex) {
             throw new RuntimeException (ex);
@@ -518,9 +516,7 @@ public class SimpleObjectContextFactory {
             StringBuilder builder = new StringBuilder (key);
             if (key.length () < length) {
                 int d = length - key.length ();
-                for (int i = 0; i < d; i ++) {
-                    builder.append (' ');
-                }
+                builder.append (" ".repeat (d));
             }
             builder.append (" : ").append (props.getProperty (key));
             logger.trace (builder.toString ());
@@ -585,7 +581,7 @@ public class SimpleObjectContextFactory {
         }
 
         if (log4j)
-            initLog4J (loader, logLevel, logFile, parser);
+            initLog4J (loader, logLevel, logFile, parser, conf);
         else
             initJdkLogger (loader, logLevel, logFile);
     }
@@ -641,7 +637,7 @@ public class SimpleObjectContextFactory {
         file.deleteOnExit ();
     }
 
-    private static void initLog4J (ClassLoader loader, String logLevel, String logFile, ArgumentParser parser) throws IOException {
+    private static void initLog4J (ClassLoader loader, String logLevel, String logFile, ArgumentParser parser, PropertyConfiguration conf) throws IOException {
         try (InputStream in = loader.getResourceAsStream ("internal-log4j.properties")) {
             Properties props = new Properties ();
             props.load (in);
@@ -670,6 +666,14 @@ public class SimpleObjectContextFactory {
                     }
                 }
             }
+
+            Properties raw = conf.getRawProperties ();
+            raw.stringPropertyNames ().stream()
+                    .filter (name -> name.startsWith ("logger.level."))
+                    .forEach (name -> {
+                        String value = raw.getProperty (name);
+                        props.setProperty (name, value);
+                    });
 
             if ("trace".equalsIgnoreCase (logLevel)) {
                 System.out.println ("trying to configure log4j ...");

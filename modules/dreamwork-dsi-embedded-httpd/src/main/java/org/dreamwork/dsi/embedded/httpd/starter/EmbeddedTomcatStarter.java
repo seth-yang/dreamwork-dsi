@@ -1,10 +1,15 @@
 package org.dreamwork.dsi.embedded.httpd.starter;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServlet;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
-import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages;
 import org.dreamwork.dsi.embedded.httpd.support.BackendServlet;
 import org.dreamwork.dsi.embedded.httpd.support.WebComponentHelper;
@@ -13,16 +18,12 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.InternalWebsocketScann
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.AInjectionContext;
 import org.dreamwork.injection.IObjectContext;
-import org.dreamwork.injection.impl.ScannerHelper;
+import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.CollectionCreator;
+import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServlet;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -58,6 +59,18 @@ public class EmbeddedTomcatStarter {
 
     @AConfigured ("${embedded.httpd.delegate.enabled}")
     private boolean delegate = false;
+
+    @AConfigured ("${embedded.httpd.multipart.location}")
+    private String multipartLocation;
+
+    @AConfigured ("${embedded.httpd.multipart.file-size}")
+    private int fileSize = (1 << 24) * 2;
+
+    @AConfigured ("${embedded.httpd.multipart.max-file-size}")
+    private int maxFilesSize = (1 << 24) * 10;
+
+    @AConfigured ("${embedded.httpd.multipart.max-request-size}")
+    private int maxRequestSize = (1 << 24) * 50;
 
     @Resource
     private IObjectContext context;
@@ -160,6 +173,9 @@ public class EmbeddedTomcatStarter {
             throw new IOException ("cannot create tmp dir: " + tmp.getCanonicalPath ());
         }
         System.setProperty ("java.io.tmpdir", tmp.getCanonicalPath ());
+        if (StringUtil.isEmpty (multipartLocation)) {
+            multipartLocation = tmp.getCanonicalPath ();
+        }
 
         // 扫描 websocket 组件
         InternalWebsocketScanner.setContext (context);
@@ -207,6 +223,9 @@ public class EmbeddedTomcatStarter {
         scanWebComponents (context);
 
         Wrapper w = Tomcat.addServlet (webContext, "apis", BackendServlet.class.getCanonicalName ());
+        MultipartConfigElement conf = new MultipartConfigElement (multipartLocation, maxFilesSize, maxRequestSize, fileSize);
+        w.setMultipartConfigElement (conf);
+
         w.setParentClassLoader (currentLoader);
         if (mapping.charAt (0) != '/') {
             mapping = '/' + mapping;
@@ -219,14 +238,8 @@ public class EmbeddedTomcatStarter {
         }
         w.addMapping (mapping + leading);
 
-        Looper.invokeLater (() -> {
-            try {
-                tomcat.start ();
-                logger.info ("embedded tomcat started.");
-            } catch (LifecycleException ex) {
-                logger.warn (ex.getMessage (), ex);
-            }
-        });
+        tomcat.start ();
+        logger.info ("embedded tomcat started.");
     }
 
     public void mapServlet (String servletName, Class<? extends HttpServlet> type, String... patterns) {

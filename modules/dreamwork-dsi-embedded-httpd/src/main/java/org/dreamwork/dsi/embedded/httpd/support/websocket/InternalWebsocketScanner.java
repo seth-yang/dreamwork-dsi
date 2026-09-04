@@ -7,7 +7,7 @@ import org.dreamwork.util.CollectionCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.websocket.Endpoint;
+import jakarta.websocket.Endpoint;
 import java.lang.annotation.Annotation;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,8 +48,7 @@ public class InternalWebsocketScanner extends AbstractWebSocketScanner {
             Annotation[] annotations = context.getContextAnnotation ();
             if (isNotEmpty (annotations)) {
                 for (Annotation annotation : annotations) {
-                    if (annotation instanceof AWebsocketPackages) {
-                        AWebsocketPackages awp = (AWebsocketPackages) annotation;
+                    if (annotation instanceof AWebsocketPackages awp) {
                         String[] array = awp.packageNames ();
                         if (isEmpty (array)) {
                             array = awp.value ();
