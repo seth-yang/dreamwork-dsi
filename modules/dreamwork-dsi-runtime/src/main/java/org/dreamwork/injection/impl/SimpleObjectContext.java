@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 /**
  * 简单容器
@@ -28,6 +29,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class SimpleObjectContext implements IObjectContext {
     public static final String VERSION_INFO = "Dreamwork Simple Injection V2.0.0";
+    private static final Pattern TRUE = Pattern.compile ("^true|t|1|on$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FALSE = Pattern.compile ("^false|f|0|off$", Pattern.CASE_INSENSITIVE);
+
     private final Logger logger = LoggerFactory.getLogger (SimpleObjectContext.class);
     private final Lock LOCKER = new ReentrantLock ();
 
@@ -768,6 +772,14 @@ public class SimpleObjectContext implements IObjectContext {
                 Class<?> type = field.getType ();
                 if (type.isAssignableFrom (String.class)) {
                     value = expression;
+                } else if (type == boolean.class || type == Boolean.class) {
+                    if (TRUE.matcher (expression.trim ()).matches ()) {
+                        value = true;
+                    } else if (FALSE.matcher (expression.trim ()).matches ()) {
+                        value = false;
+                    } else {
+                        throw new IllegalArgumentException ("invalid boolean value: " + expression);
+                    }
                 } else {
                     try {
                         value = JsonHelper.fromJson (expression, type);
