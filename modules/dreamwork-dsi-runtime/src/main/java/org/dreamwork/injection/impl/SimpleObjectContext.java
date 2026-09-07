@@ -3,6 +3,7 @@ package org.dreamwork.injection.impl;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.*;
 import org.dreamwork.util.JsonHelper;
+import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -531,16 +532,7 @@ public class SimpleObjectContext implements IObjectContext {
             throw new InstanceNotFoundException ("field " + field + " cannot be injected. The annotated object was not registered.");
         }
 
-        if (!field.canAccess (bean)) {
-            try {
-                field.setAccessible (true);
-            } catch (InaccessibleObjectException ex) {
-                logger.error ("cannot access field {}", field, ex);
-                logger.error (ScannerHelper.createAddModuleInfoMessage (field));
-                throw ex;
-            }
-        }
-
+        ReferenceUtil.checkAccessible (field, bean);
         field.set (bean, value);
     }
 
@@ -789,15 +781,7 @@ public class SimpleObjectContext implements IObjectContext {
                     }
                 }
                 if (value != null) {
-                    if (!field.canAccess (bean)) {
-                        try {
-                            field.setAccessible (true);
-                        } catch (InaccessibleObjectException ex) {
-                            logger.warn (ex.getMessage (), ex);
-                            logger.warn (ScannerHelper.createAddModuleInfoMessage (field));
-                            throw ex;
-                        }
-                    }
+                    ReferenceUtil.checkAccessible (field, bean);
                     field.set (bean, value);
                 }
             } else if (ac.required ()) {

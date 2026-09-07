@@ -265,14 +265,7 @@ public class WebSocketManager {
                 Object o = context.getBean (field.getType ());
 
                 try {
-                    if (!field.canAccess (socket)) {
-                        try {
-                            field.setAccessible (true);
-                        } catch (InaccessibleObjectException | SecurityException ex) {
-                            logger.error (ex.getMessage (), ex);
-                            throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (field));
-                        }
-                    }
+                    ReferenceUtil.checkAccessible (field, socket);
                     field.set (socket, o);
                 } catch (Exception ex) {
                     logger.warn (ex.getMessage (), ex);
@@ -314,14 +307,7 @@ public class WebSocketManager {
                 }
 
                 if (value != null) {
-                    if (!setter.canAccess (socket)) {
-                        try {
-                            setter.setAccessible (true);
-                        } catch (InaccessibleObjectException | SecurityException ex) {
-                            logger.warn (ex.getMessage (), ex);
-                            throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (setter));
-                        }
-                    }
+                    ReferenceUtil.checkAccessible (setter, socket);
                     try {
                         setter.invoke (socket, value);
                     } catch (IllegalAccessException | InvocationTargetException ex) {

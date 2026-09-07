@@ -8,6 +8,7 @@ import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.util.JsonHelper;
+import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
 import java.util.Collection;
-
-import static org.dreamwork.injection.ScannerHelper.createAddModuleInfoMessage;
 
 public class WebComponentHelper {
     private final static Logger logger = LoggerFactory.getLogger (WebComponentHelper.class);
@@ -29,7 +27,7 @@ public class WebComponentHelper {
         WebComponentHelper.context = context;
     }
 
-    public static<T> void injectFields (T instance, Cache c) throws InstantiationException {
+    public static<T> void injectFields (T instance, Cache c) {
         if (!c.fields.isEmpty ()) { // 注入字段
             for (Field field : c.fields) {
                 Class<?> ft = field.getType ();
@@ -46,21 +44,12 @@ public class WebComponentHelper {
                     }
                 }
                 if (target != null) {
-                    if (!field.canAccess (instance)) {
-                        try {
-                            field.setAccessible (true);
-                        } catch (InaccessibleObjectException | SecurityException ex) {
-                            logger.error ("cannot inject field: {}", field.getName ());
-                            logger.error (ex.getMessage (), ex);
-                            throw new RuntimeException (createAddModuleInfoMessage (field));
-                        }
-
-                        try {
-                            field.set (instance, target);
-                        } catch (Exception ex) {
-                            logger.warn (ex.getMessage (), ex);
-                            throw new RuntimeException (ex);
-                        }
+                    ReferenceUtil.checkAccessible (field, instance);
+                    try {
+                        field.set (instance, target);
+                    } catch (Exception ex) {
+                        logger.warn (ex.getMessage (), ex);
+                        throw new RuntimeException (ex);
                     }
                 }
             }
@@ -70,15 +59,7 @@ public class WebComponentHelper {
     public static<T> void injectMethod (T instance, Cache c) throws InstantiationException {
         if (!c.methods.isEmpty ()) {
             for (Method method : c.methods) {
-                if (!method.canAccess (instance)) {
-                    try {
-                        method.setAccessible (true);
-                    } catch (InaccessibleObjectException | SecurityException ex) {
-                        logger.error (ex.getMessage (), ex);
-                        throw new RuntimeException (createAddModuleInfoMessage (method));
-                    }
-                }
-
+                ReferenceUtil.checkAccessible (method, instance);
                 int count = method.getParameterCount ();
                 if (count == 1 && method.isAnnotationPresent (Resources.class)) {
                     Resource res = method.getAnnotation (Resource.class);
@@ -154,15 +135,7 @@ public class WebComponentHelper {
                             }
                         }
                         try {
-                            if (!ao.canAccess (instance)) {
-                                try {
-                                    ao.setAccessible (true);
-                                } catch (InaccessibleObjectException | SecurityException ex) {
-                                    logger.warn (ex.getMessage (), ex);
-                                    throw new RuntimeException (createAddModuleInfoMessage (ao));
-                                }
-                            }
-
+                            ReferenceUtil.checkAccessible (ao, instance);
                             if (ao instanceof Field field) {
                                 field.set (instance, target);
                             } else {

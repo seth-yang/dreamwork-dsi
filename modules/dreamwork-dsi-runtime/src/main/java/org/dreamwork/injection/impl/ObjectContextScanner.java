@@ -5,6 +5,7 @@ import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.ClassScanner;
 import org.dreamwork.injection.IInjectResolvedProcessor;
 import org.dreamwork.injection.ScannerHelper;
+import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,14 +63,7 @@ public class ObjectContextScanner extends ClassScanner {
                     exposeName = rt.getSimpleName ();
                     exposeName = Character.toLowerCase (exposeName.charAt (0)) + exposeName.substring (1);
                 }
-                if (!mw.method.canAccess (bean)) {
-                    try {
-                        mw.method.setAccessible (true);
-                    } catch (InaccessibleObjectException ex) {
-                        logger.warn ("cannot access method {}", mw.method);
-                        logger.error (ScannerHelper.createAddModuleInfoMessage (mw.method));
-                    }
-                }
+                ReferenceUtil.checkAccessible (mw.method, bean);
                 Object o = mw.method.invoke (bean);
                 if (o == null) {
                     throw new IntrospectionException ("method " + mw.method + " returns a null object!");

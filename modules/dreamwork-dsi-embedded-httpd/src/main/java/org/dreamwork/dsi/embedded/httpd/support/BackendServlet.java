@@ -7,10 +7,7 @@ import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
 import org.dreamwork.injection.IObjectContext;
 import org.dreamwork.injection.ScannerHelper;
-import org.dreamwork.util.CollectionCreator;
-import org.dreamwork.util.IOUtil;
-import org.dreamwork.util.JsonHelper;
-import org.dreamwork.util.StringUtil;
+import org.dreamwork.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +23,7 @@ import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Ref;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -101,19 +99,12 @@ public class BackendServlet extends HttpServlet {
 
                 Class<ApplicationServletRegistration> type = ApplicationServletRegistration.class;
                 Field field = type.getDeclaredField ("wrapper");
-                if (!field.canAccess (base)) {
-                    try {
-                        field.setAccessible (true);
-                    } catch (InaccessibleObjectException | SecurityException ex) {
-                        logger.error (ex.getMessage (), ex);
-                        throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (field));
-                    }
-                }
-
+                ReferenceUtil.checkAccessible (field, base);
                 StandardWrapper wrapper = (StandardWrapper) field.get (base);
                 defaultServlet = wrapper.getServlet ();
 
                 ServletRegistration jsp = mappings.get ("jsp");
+                ReferenceUtil.checkAccessible (field, jsp);
                 wrapper = (StandardWrapper) field.get (jsp);
                 jspServlet = wrapper.getServlet ();
             } catch (Exception ex) {
