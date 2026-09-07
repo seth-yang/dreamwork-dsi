@@ -7,6 +7,7 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
@@ -18,10 +19,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.io.IOException;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -267,9 +265,15 @@ public class WebSocketManager {
                 Object o = context.getBean (field.getType ());
 
                 try {
-                    if (field.canAccess (socket)) {
-                        field.set (socket, o);
+                    if (!field.canAccess (socket)) {
+                        try {
+                            field.setAccessible (true);
+                        } catch (InaccessibleObjectException | SecurityException ex) {
+                            logger.error (ex.getMessage (), ex);
+                            throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (field));
+                        }
                     }
+                    field.set (socket, o);
                 } catch (Exception ex) {
                     logger.warn (ex.getMessage (), ex);
                 }
@@ -298,7 +302,26 @@ public class WebSocketManager {
                     value = context.getBean (setter.getParameterTypes ()[0]);
                 }
 
-                if (value != null && setter.canAccess (socket)) {
+                if (value != null) {
+                    if (!setter.canAccess (socket)) {
+                        try {
+                            setter.setAccessible (true);
+                        } catch (InaccessibleObjectException | SecurityException ex) {
+                            logger.warn (ex.getMessage (), ex);
+                            throw new RuntimeException ();
+                        }
+                    }
+                }
+
+                if (value != null) {
+                    if (!setter.canAccess (socket)) {
+                        try {
+                            setter.setAccessible (true);
+                        } catch (InaccessibleObjectException | SecurityException ex) {
+                            logger.warn (ex.getMessage (), ex);
+                            throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (setter));
+                        }
+                    }
                     try {
                         setter.invoke (socket, value);
                     } catch (IllegalAccessException | InvocationTargetException ex) {

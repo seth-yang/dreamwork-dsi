@@ -13,9 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
 import java.util.Collection;
+
+import static org.dreamwork.injection.ScannerHelper.createAddModuleInfoMessage;
 
 public class WebComponentHelper {
     private final static Logger logger = LoggerFactory.getLogger (WebComponentHelper.class);
@@ -42,48 +46,22 @@ public class WebComponentHelper {
                     }
                 }
                 if (target != null) {
-                    try {
-                        if (field.canAccess (instance)) {
-                            field.set (instance, target);
-                        } else {
-                            logger.error ("cannot access field: {}", field);
-                            throw new InstantiationException ("cannot inject field: " + field.getName ());
-                        }
-                    } catch (Exception ex) {
-                        throw new InstantiationException ("cannot inject field: " + field.getName ());
-                    }
-                }
-            }
-        }
-        if (!c.config.isEmpty ()) { // 注入配置
-            for (Field field : c.config) {
-                Class<?> ft = field.getType ();
-                AConfigured conf = field.getAnnotation (AConfigured.class);
-                String key = getKey (field, conf);
-
-                IConfiguration bean = context.getBean (IConfiguration.class);
-                String expression = bean.getString (key);
-                Object target;
-                if (!StringUtil.isEmpty (expression)) {
-                    if (ft.isAssignableFrom (String.class)) {
-                        target = expression;
-                    } else {
+                    if (!field.canAccess (instance)) {
                         try {
-                            target = JsonHelper.fromJson (expression, ft);
+                            field.setAccessible (true);
+                        } catch (InaccessibleObjectException | SecurityException ex) {
+                            logger.error ("cannot inject field: {}", field.getName ());
+                            logger.error (ex.getMessage (), ex);
+                            throw new RuntimeException (createAddModuleInfoMessage (field));
+                        }
+
+                        try {
+                            field.set (instance, target);
                         } catch (Exception ex) {
-                            logger.error ("cannot convert {} to {} when injecting {}", expression, field.getDeclaringClass (), field);
+                            logger.warn (ex.getMessage (), ex);
                             throw new RuntimeException (ex);
                         }
                     }
-                    try {
-                        if (field.canAccess (instance)) {
-                            field.set (instance, target);
-                        }
-                    } catch (Exception ex) {
-                        throw new InstantiationException ("cannot inject field: " + field.getName ());
-                    }
-                } else if (conf.required ()) {
-                    throw new InstantiationException ("cannot inject config for " + field);
                 }
             }
         }
@@ -93,8 +71,12 @@ public class WebComponentHelper {
         if (!c.methods.isEmpty ()) {
             for (Method method : c.methods) {
                 if (!method.canAccess (instance)) {
-                    logger.error ("cannot access method: {}", method);
-                    throw new InstantiationException ("cannot inject method: "  + method + ", cause of access denied");
+                    try {
+                        method.setAccessible (true);
+                    } catch (InaccessibleObjectException | SecurityException ex) {
+                        logger.error (ex.getMessage (), ex);
+                        throw new RuntimeException (createAddModuleInfoMessage (method));
+                    }
                 }
 
                 int count = method.getParameterCount ();
@@ -142,6 +124,62 @@ public class WebComponentHelper {
         }
     }
 
+    private static<T> void injectConfig (T instance, Cache c) throws InstantiationException {
+        if (!c.config.isEmpty ()) { // 注入配置
+            for (AccessibleObject ao : c.config) {
+                AConfigured conf = null;
+                Class<?> ft = null;
+                if (ao instanceof Field field) {
+                    conf = field.getAnnotation (AConfigured.class);
+                    ft = field.getType ();
+                } else if (ao instanceof Method method) {
+                    conf = method.getAnnotation (AConfigured.class);
+                    ft = method.getParameterTypes ()[0];
+                }
+
+                if (conf != null) {
+                    String key = getKey (ao, conf);
+                    IConfiguration bean = context.getBean (IConfiguration.class);
+                    String expression = bean.getString (key);
+                    Object target;
+                    if (!StringUtil.isEmpty (expression)) {
+                        if (ft.isAssignableFrom (String.class)) {
+                            target = expression;
+                        } else {
+                            try {
+                                target = JsonHelper.fromJson (expression, ft);
+                            } catch (Exception ex) {
+                                logger.error ("cannot convert {} to {} when injecting {}", expression, ft, ao);
+                                throw new RuntimeException (ex);
+                            }
+                        }
+                        try {
+                            if (!ao.canAccess (instance)) {
+                                try {
+                                    ao.setAccessible (true);
+                                } catch (InaccessibleObjectException | SecurityException ex) {
+                                    logger.warn (ex.getMessage (), ex);
+                                    throw new RuntimeException (createAddModuleInfoMessage (ao));
+                                }
+                            }
+
+                            if (ao instanceof Field field) {
+                                field.set (instance, target);
+                            } else {
+                                Method method = (Method) ao;
+                                method.invoke (instance, target);
+                            }
+                        } catch (Exception ex) {
+                            throw new InstantiationException ("cannot inject field: " + ao);
+                        }
+                    } else if (conf.required ()) {
+                        throw new InstantiationException ("cannot inject config for " + ao);
+                    }
+                }
+            }
+        }
+    }
+
     private static Object getValue (Resource res, Class<?> type) {
         String name = res.name ();
         Object target;
@@ -154,7 +192,7 @@ public class WebComponentHelper {
         return target;
     }
 
-    private static String getKey (Field field, AConfigured conf) throws InstantiationException {
+    private static String getKey (AccessibleObject ao, AConfigured conf) throws InstantiationException {
         String key = conf.key ();
         boolean required = conf.required ();
         if (StringUtil.isEmpty (key)) {
@@ -167,12 +205,12 @@ public class WebComponentHelper {
             key = key.substring (0, key.length () - 1);
         }
         if (required && StringUtil.isEmpty (key)) {
-            throw new InstantiationException ("cannot inject config for " + field);
+            throw new InstantiationException ("cannot inject config for " + ao);
         }
         return key;
     }
 
-    public static void findField (Class<?> type, Collection<Field> fieldsInjection, Collection<Field> configs) {
+    public static void findField (Class<?> type, Collection<Field> fieldsInjection, Collection<AccessibleObject> configs) {
         Field[] fields = type.getDeclaredFields ();
         for (Field field : fields) {
             if (field.isAnnotationPresent (Resource.class)) {
@@ -204,25 +242,27 @@ public class WebComponentHelper {
                     }
                     c.destroyer = method;
                 }
-            } else if (method.isAnnotationPresent (Resource.class)) {
-                if (count == 1) {
+            } else if (count == 1 && method.getName ().startsWith ("set")) { // all setters
+                if (method.isAnnotationPresent (Resource.class)) {
                     c.methods.add (method);
-                } else if (count > 1) {
-                    Annotation[][] pas = method.getParameterAnnotations ();
-                    for (Annotation[] pa : pas) {
-                        boolean matches = false;
-                        for (Annotation a : pa) {
-                            if (a instanceof Resource) {
-                                matches = true;
-                                break;
-                            }
-                        }
-                        if (!matches) {
-                            throw new InstantiationException ("there's at least one parameter was not annotated by Resource annotation");
+                } else if (method.isAnnotationPresent (AConfigured.class)) {
+                    c.config.add (method);
+                }
+            } else if (method.isAnnotationPresent (Resource.class)) {
+                Annotation[][] pas = method.getParameterAnnotations ();
+                for (Annotation[] pa : pas) {
+                    boolean matches = false;
+                    for (Annotation a : pa) {
+                        if (a instanceof Resource) {
+                            matches = true;
+                            break;
                         }
                     }
-                    c.methods.add (method);
+                    if (!matches) {
+                        throw new InstantiationException ("there's at least one parameter was not annotated by Resource annotation");
+                    }
                 }
+                c.methods.add (method);
             }
         }
 
@@ -246,6 +286,7 @@ public class WebComponentHelper {
     public static<T> T inject (Cache c, T instance) throws InstantiationException {
         injectFields (instance, c);
         injectMethod (instance, c);
+        injectConfig (instance, c);
         if (c.starter != null) {
             try {
                 c.starter.invoke (instance);

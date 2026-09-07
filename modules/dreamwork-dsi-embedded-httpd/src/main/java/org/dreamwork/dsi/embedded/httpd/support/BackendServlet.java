@@ -6,6 +6,7 @@ import org.apache.catalina.core.StandardWrapper;
 import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.CollectionCreator;
 import org.dreamwork.util.IOUtil;
 import org.dreamwork.util.JsonHelper;
@@ -18,6 +19,7 @@ import jakarta.servlet.annotation.WebServlet;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -100,7 +102,12 @@ public class BackendServlet extends HttpServlet {
                 Class<ApplicationServletRegistration> type = ApplicationServletRegistration.class;
                 Field field = type.getDeclaredField ("wrapper");
                 if (!field.canAccess (base)) {
-                    field.setAccessible (true);
+                    try {
+                        field.setAccessible (true);
+                    } catch (InaccessibleObjectException | SecurityException ex) {
+                        logger.error (ex.getMessage (), ex);
+                        throw new RuntimeException (ScannerHelper.createAddModuleInfoMessage (field));
+                    }
                 }
 
                 StandardWrapper wrapper = (StandardWrapper) field.get (base);

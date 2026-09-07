@@ -52,10 +52,9 @@
     </scm>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dsi.version>2.1.2</dsi.version>
+        <dsi.version>3.0.0</dsi.version>
     </properties>
     <build>
         <plugins>
@@ -75,12 +74,20 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <version>3.12.0</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
-                    <aggregate>true</aggregate>
                     <charset>UTF-8</charset>
                     <docencoding>UTF-8</docencoding>
+                    <!--
+                        JDK 9+ 下 javadoc 一旦遇到 module-info.java 就会进入模块模式，
+                        要求 requires 的模块出现在 &dash;&dash;module-path 上。旧插件(2.10.4)只会把
+                        依赖放到 -classpath，因此报 "找不到模块"。
+                        从 3.11.3 起，legacyMode=true 会把 module-info.java 过滤掉，按
+                        Java 9 之前的非模块化方式生成 javadoc（发布的 javadoc jar 不受影响）。
+                    -->
+                    <legacyMode>true</legacyMode>
+                    <doclint>none</doclint>
                 </configuration>
                 <executions>
                     <execution>
@@ -133,7 +140,12 @@
         <dependency>
             <groupId>io.github.seth-yang</groupId>
             <artifactId>dreamwork-base</artifactId>
-            <version>3.1.8</version>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </project>
