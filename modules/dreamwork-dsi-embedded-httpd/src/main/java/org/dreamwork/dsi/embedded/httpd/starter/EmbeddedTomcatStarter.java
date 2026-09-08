@@ -77,6 +77,8 @@ public class EmbeddedTomcatStarter {
 
     private StandardContext webContext;
 
+    private MultipartConfigElement multipartConfig;
+
     @SuppressWarnings ("unused")
     public String getContextPath () {
         return contextPath;
@@ -153,22 +155,22 @@ public class EmbeddedTomcatStarter {
             logger.trace ("            host = {}", host);
         }
 
-        File base = new File ("../.embedded-httpd");
+        var base = new File ("../.embedded-httpd");
         if (!base.exists () && !base.mkdirs ()) {
             throw new IOException ("cannot create base dir: " + base.getCanonicalPath ());
         }
 
-        File serverRoot = new File (base, "webapps");
+        var serverRoot = new File (base, "webapps");
         if (!serverRoot.exists () && !serverRoot.mkdirs ()) {
             throw new IOException ("cannot create webapps dir: " + serverRoot.getCanonicalPath ());
         }
 
-        File root = new File (serverRoot, "ROOT");
+        var root = new File (serverRoot, "ROOT");
         if (!root.exists () && !root.mkdirs ()) {
             throw new IOException ("cannot create root dir: " + root.getCanonicalPath ());
         }
 
-        File tmp = new File (base, "tmp");
+        var tmp = new File (base, "tmp");
         if (!tmp.exists () && !tmp.mkdirs ()) {
             throw new IOException ("cannot create tmp dir: " + tmp.getCanonicalPath ());
         }
@@ -225,6 +227,7 @@ public class EmbeddedTomcatStarter {
         Wrapper w = Tomcat.addServlet (webContext, "apis", BackendServlet.class.getCanonicalName ());
         MultipartConfigElement conf = new MultipartConfigElement (multipartLocation, maxFilesSize, maxRequestSize, fileSize);
         w.setMultipartConfigElement (conf);
+        multipartConfig = conf;
 
         w.setParentClassLoader (currentLoader);
         if (mapping.charAt (0) != '/') {
@@ -264,19 +267,18 @@ public class EmbeddedTomcatStarter {
      */
     private void scanWebComponents (IObjectContext context) throws Exception {
         ClassLoader loader = getClass ().getClassLoader ();
-        Annotation[] annotations = context.getContextAnnotation ();
+        var annotations = context.getContextAnnotation ();
         if (isNotEmpty (annotations)) {
             Set<String> set = new HashSet<> ();
             // @since 2.1.2, AInjectionContext.webComponentPackages 也合并进来
-            AInjectionContext ic = (AInjectionContext) context.getBean (CONTEXT_DESCRIBER);
+            var ic = (AInjectionContext) context.getBean (CONTEXT_DESCRIBER);
             if (ic != null) {
                 if (isNotEmpty (ic.webComponentPackages ())) {
                     set.addAll (CollectionCreator.asSet (ic.webComponentPackages ()));
                 }
             }
-            for (Annotation annotation : annotations) {
-                if (annotation instanceof AWebPackages) {
-                    AWebPackages wp = (AWebPackages) annotation;
+            for (var annotation : annotations) {
+                if (annotation instanceof AWebPackages wp) {
                     String[] names = wp.packageNames ();
                     if (names == null || names.length == 0) {
                         names = wp.value ();
@@ -291,7 +293,7 @@ public class EmbeddedTomcatStarter {
             }
             if (!set.isEmpty ()) {
                 String[] names = set.toArray (new String[0]);
-                WebComponentScanner scanner = new WebComponentScanner (webContext);
+                WebComponentScanner scanner = new WebComponentScanner (webContext, multipartConfig);
                 scanner.scan (names);
             }
         }

@@ -1,5 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.annotation.MultipartConfig;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.tomcat.util.descriptor.web.FilterDef;
@@ -25,10 +27,12 @@ public class WebComponentScanner extends ClassScanner {
 
     private final StandardContext web;
     private final ClassLoader loader;
+    private final MultipartConfigElement conf;
 
-    public WebComponentScanner (StandardContext web) {
+    public WebComponentScanner (StandardContext web, MultipartConfigElement conf) {
         this.web = web;
         loader = getClass ().getClassLoader ();
+        this.conf = conf;
     }
     /**
      * 当扫描器扫描到一个类时调用这个方法来验证是否是所需的，若是，则触发 {@link #onFound(String, Class, Set)} 事件
@@ -95,6 +99,15 @@ public class WebComponentScanner extends ClassScanner {
             }
         }
         w.setLoadOnStartup (servlet.loadOnStartup ());
+
+        if (type.isAnnotationPresent (MultipartConfig.class)) {
+            MultipartConfig mc = type.getAnnotation (MultipartConfig.class);
+            if (mc.fileSizeThreshold () == -1 && mc.maxFileSize () == -1 && mc.maxRequestSize () == -1 && StringUtil.isEmpty (mc.location ())) {
+                w.setMultipartConfigElement (conf);
+            } else {
+                w.setMultipartConfigElement (new MultipartConfigElement (mc.location (), mc.maxFileSize (), mc.maxRequestSize (), mc.fileSizeThreshold ()));
+            }
+        }
     }
 
     private void mapFilter (Class<?> type) {

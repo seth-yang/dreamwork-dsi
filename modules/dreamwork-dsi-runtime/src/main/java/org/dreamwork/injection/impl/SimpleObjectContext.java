@@ -93,13 +93,13 @@ public class SimpleObjectContext implements IObjectContext {
         try {
             LOCKER.lock ();
 
-            Object o = mappedByType.get (type);
+            var o = mappedByType.get (type);
             if (o == null) {
                 return Collections.emptyMap ();
             }
 
             if (o.getClass () != InnerList.class) {
-                for (Map.Entry<String, Object> e : mappedByName.entrySet ()) {
+                for (var e : mappedByName.entrySet ()) {
                     if (o == e.getValue ()) {
                         return Collections.singletonMap (e.getKey (), (T) o);
                     }
@@ -108,7 +108,7 @@ public class SimpleObjectContext implements IObjectContext {
                 InnerList il = (InnerList) o;
                 Map<String, T> map = new HashMap<> ();
                 for (Object i : il) {
-                    for (Map.Entry<String, Object> e : mappedByName.entrySet ()) {
+                    for (var e : mappedByName.entrySet ()) {
                         if (e.getValue () == i) {
                             map.put (e.getKey (), (T) i);
                             break;
@@ -153,7 +153,7 @@ public class SimpleObjectContext implements IObjectContext {
             LOCKER.lock ();
 
             String name = null;
-            for (Map.Entry<String, Object> e : mappedByName.entrySet ()) {
+            for (var e : mappedByName.entrySet ()) {
                 if (bean == e.getValue ()) {
                     name = e.getKey ();
                     break;
@@ -166,7 +166,7 @@ public class SimpleObjectContext implements IObjectContext {
 
                 if (!types.isEmpty ()) {
                     Set<Class<?>> temp = new HashSet<> ();
-                    for (Class<?> type : types) {
+                    for (var type : types) {
                         Object o = mappedByType.get (type);
                         if (o == bean) {
                             temp.add (type);
@@ -178,7 +178,7 @@ public class SimpleObjectContext implements IObjectContext {
                         }
                     }
                     if (!temp.isEmpty ()) {
-                        for (Class<?> type : temp) {
+                        for (var type : temp) {
                             mappedByType.remove (type);
                         }
                     }
@@ -235,7 +235,7 @@ public class SimpleObjectContext implements IObjectContext {
                 // 预处理方法
                 Method postConstruct = null;
                 Set<Field> set = new HashSet<> ();
-                for (Class<?> type : types) {
+                for (var type : types) {
                     if (!mappedByType.containsKey (type)) {
                         // 若这个类型的实例未被映射过，直接映射
                         mappedByType.put (type, bean);
@@ -269,8 +269,8 @@ public class SimpleObjectContext implements IObjectContext {
                         }
                     }
 
-                    Field[] fields = type.getDeclaredFields ();
-                    for (Field field : fields) {
+                    var fields = type.getDeclaredFields ();
+                    for (var field : fields) {
                         if (field.isAnnotationPresent (AConfigured.class)) {
                             // 标注为配置注入的字段
                             set.add (field);
@@ -312,7 +312,7 @@ public class SimpleObjectContext implements IObjectContext {
                 String uuid = StringUtil.uuid ();
                 mappedByName.put (uuid, o);
 
-                for (Class<?> type : interfaces) {
+                for (var type : interfaces) {
                     if (type.isAssignableFrom (o.getClass ())) {
                         if (!mappedByType.containsKey (type)) {
                             mappedByType.put (type, o);
@@ -377,7 +377,7 @@ public class SimpleObjectContext implements IObjectContext {
             List<IInjectResolvedProcessor> list = new ArrayList<> (processors);
             Collections.sort (list);
             try {
-                for (IInjectResolvedProcessor processor : list) {
+                for (var processor : list) {
                     processor.perform (this);
                 }
             } catch (Exception ex) {
@@ -424,13 +424,13 @@ public class SimpleObjectContext implements IObjectContext {
      * @throws Exception 任何异常
      */
     void resolve (Set<ClassScanner.Wrapper> wrappers) throws Exception {
-        for (ClassScanner.Wrapper w : wrappers) {
+        for (var w : wrappers) {
             if (logger.isTraceEnabled ()) {
                 logger.trace ("injecting fields in {}...", w.type);
             }
             // 若有需要注入的字段
             if (!w.injectFields.isEmpty ()) {
-                for (Field field : w.injectFields) {
+                for (var field : w.injectFields) {
                     injectField (w.bean, field);
                 }
             }
@@ -441,7 +441,7 @@ public class SimpleObjectContext implements IObjectContext {
             }
             // 若有需要注入的字段
             if (!w.injectMethods.isEmpty ()) {
-                for (ClassScanner.MethodWrapper mw : w.injectMethods) {
+                for (var mw : w.injectMethods) {
                     injectMethod (mw.name, w.bean, mw.method);
                 }
             }
@@ -454,7 +454,7 @@ public class SimpleObjectContext implements IObjectContext {
             logger.trace ("processing all post constructs...");
         }
 
-        for (ClassScanner.Wrapper w : wrappers) {
+        for (var w : wrappers) {
             if (w.isProcessor) {
                 processors.add ((IInjectResolvedProcessor) w.bean);
             }
@@ -482,15 +482,15 @@ public class SimpleObjectContext implements IObjectContext {
     private Method resolve (Object bean, Class<?> type) throws InvocationTargetException, IllegalAccessException, InstanceNotFoundException, InstantiationException, IntrospectionException {
         Method postConstruct = null;
         // 注入需要注入的字段
-        Field[] fields = type.getDeclaredFields ();
-        for (Field field : fields) {
+        var fields = type.getDeclaredFields ();
+        for (var field : fields) {
             if (field.isAnnotationPresent (Resource.class)) {
                 injectField (bean, field);
             }
         }
         // 注入需要处理的方法
-        Method[] methods = type.getDeclaredMethods ();
-        for (Method method : methods) {
+        var methods = type.getDeclaredMethods ();
+        for (var method : methods) {
             if (method.isAnnotationPresent (Resource.class)) {
                 int code = map (method);
                 switch (code) {
@@ -520,7 +520,7 @@ public class SimpleObjectContext implements IObjectContext {
         if (IObjectContext.class.isAssignableFrom (ft)) {
             value = this;
         } else {
-            Resource res = field.getAnnotation (Resource.class);
+            var res = field.getAnnotation (Resource.class);
             if (!StringUtil.isEmpty (res.name ())) {
                 value = getBean (res.name ());
             } else {
@@ -550,7 +550,7 @@ public class SimpleObjectContext implements IObjectContext {
         if (!StringUtil.isEmpty (name)) {
             value = getBean (name);
         } else {
-            Class<?> type = method.getParameterTypes ()[0];
+            var type = method.getParameterTypes ()[0];
             if (IObjectContext.class.isAssignableFrom (type)) {
                 value = this;
             } else {
@@ -593,7 +593,7 @@ public class SimpleObjectContext implements IObjectContext {
         Resource res = method.getAnnotation (Resource.class);
 
         if (name.startsWith ("get")) {  // getter 方法，意味着应该将返回值注入到容器内
-            Class<?> type = method.getReturnType ();
+            var type = method.getReturnType ();
             if (type == void.class || type == Void.class) {
                 throw new IntrospectionException ("a method annotated as Resource getter MUST return something");
             }
@@ -614,7 +614,7 @@ public class SimpleObjectContext implements IObjectContext {
             if (method.getParameterCount () != 1) {
                 throw new IntrospectionException ("a method annotated as Resource setter MUST HAVE ONLY ONE parameter");
             }
-            Class<?> type = method.getParameterTypes ()[0];
+            var type = method.getParameterTypes ()[0];
             Object value;
             if (type.isAssignableFrom (getClass ())) {
                 value = this;
@@ -643,9 +643,9 @@ public class SimpleObjectContext implements IObjectContext {
      * @throws IllegalAccessException 当无法访问销毁前处理方法时抛出
      */
     private void destroyBean (Object bean) throws InvocationTargetException, IllegalAccessException {
-        Class<?> type = bean.getClass ();
-        Method[] methods = type.getMethods ();
-        for (Method method : methods) {
+        var type = bean.getClass ();
+        var methods = type.getMethods ();
+        for (var method : methods) {
             if (map (method) == 3) {    // 标注为 PreDestroy 的方法
                 if (logger.isTraceEnabled ()) {
                     logger.trace ("invoking pre-destroy method: {}", method);
@@ -662,11 +662,11 @@ public class SimpleObjectContext implements IObjectContext {
      * @param types    出参。每个层级的类型都会被放在这个集合中
      */
     private void findAllType (Class<?> baseType, Set<Class<?>> types) {
-        Class<?> type = baseType;
+        var type = baseType;
         while (type != null && type != Object.class) {
             types.add (type);
 
-            Class<?>[] temp = type.getInterfaces ();
+            var temp = type.getInterfaces ();
             for (Class<?> t : temp) {
                 String name = t.getCanonicalName ();
                 if (exclude (name)) {
@@ -738,8 +738,8 @@ public class SimpleObjectContext implements IObjectContext {
     static void configureFields (IConfiguration conf, Object bean, Collection<Field> fields) throws IllegalAccessException {
         final Logger logger = LoggerFactory.getLogger (SimpleObjectContext.class);
 
-        for (Field field : fields) {
-            AConfigured ac = field.getAnnotation (AConfigured.class);
+        for (var field : fields) {
+            var ac = field.getAnnotation (AConfigured.class);
             String key = ac.value ();
             if (StringUtil.isEmpty (key)) {
                 key = ac.key ();
@@ -749,7 +749,7 @@ public class SimpleObjectContext implements IObjectContext {
             }
 
             if (StringUtil.isEmpty (key)) {
-                Class<?> type = field.getDeclaringClass ();
+                var type = field.getDeclaringClass ();
                 key = "${" + type.getCanonicalName () + "." + field.getName () + "}";
             }
             String expression;
@@ -761,7 +761,7 @@ public class SimpleObjectContext implements IObjectContext {
             }
             if (expression != null) {
                 Object value;
-                Class<?> type = field.getType ();
+                var type = field.getType ();
                 if (type.isAssignableFrom (String.class)) {
                     value = expression;
                 } else if (type == boolean.class || type == Boolean.class) {

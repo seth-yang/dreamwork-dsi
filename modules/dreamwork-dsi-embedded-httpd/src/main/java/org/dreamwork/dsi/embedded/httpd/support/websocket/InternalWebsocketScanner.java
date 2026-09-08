@@ -45,9 +45,9 @@ public class InternalWebsocketScanner extends AbstractWebSocketScanner {
                 }
             }
 
-            Annotation[] annotations = context.getContextAnnotation ();
+            var annotations = context.getContextAnnotation ();
             if (isNotEmpty (annotations)) {
-                for (Annotation annotation : annotations) {
+                for (var annotation : annotations) {
                     if (annotation instanceof AWebsocketPackages awp) {
                         String[] array = awp.packageNames ();
                         if (isEmpty (array)) {
@@ -66,7 +66,7 @@ public class InternalWebsocketScanner extends AbstractWebSocketScanner {
                     logger.trace ("trying to scan websocket component from packages: {}", names);
                 }
                 computed = new HashSet<> ();
-                WebsocketComponentScanner scanner = new WebsocketComponentScanner (computed);
+                var scanner = new WebsocketComponentScanner (computed);
                 try {
                     scanner.scan (names.toArray (new String[0]));
                 } catch (Exception ex) {

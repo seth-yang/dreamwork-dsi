@@ -31,12 +31,10 @@ public abstract class ResourceServlet extends InjectableServlet {
     @Resource
     protected FileUploader uploader;
 
-
-
     @Override
     protected void doPost (HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         // 上传
-        MultipartUploadPayload payload = uploader.parseMultipart (request);
+        var payload = uploader.parseMultipart (request);
         WebJsonResult result;
         if (isNotEmpty (payload.getFiles ())) {
             Map<String, String> map = new HashMap<> ();

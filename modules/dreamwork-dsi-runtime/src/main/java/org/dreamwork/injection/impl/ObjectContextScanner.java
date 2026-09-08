@@ -1,21 +1,18 @@
 package org.dreamwork.injection.impl;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.ClassScanner;
 import org.dreamwork.injection.IInjectResolvedProcessor;
-import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Resource;
 import javax.management.IntrospectionException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
-import java.lang.reflect.Method;
 import java.util.Set;
 
 /**
@@ -37,11 +34,11 @@ public class ObjectContextScanner extends ClassScanner {
 
     @Override
     protected void onFound (String name, Class<?> type, Set<Wrapper> wrappers) throws Exception {
-        String beanName = Character.toLowerCase (name.charAt (0)) + name.substring (1);
-        Object bean = type.getConstructor ().newInstance ();
+        var beanName = Character.toLowerCase (name.charAt (0)) + name.substring (1);
+        var bean = type.getConstructor ().newInstance ();
         context.register (beanName, bean);
 
-        Wrapper w = new Wrapper ();
+        var w = new Wrapper ();
         w.type = type;
         w.bean = bean;
 
@@ -49,22 +46,22 @@ public class ObjectContextScanner extends ClassScanner {
         findMethods (type, w);
 
         if (!w.configuredFields.isEmpty ()) {
-            IConfiguration conf = context.getBean (IConfiguration.class);
+            var conf = context.getBean (IConfiguration.class);
             if (conf != null) {
                 SimpleObjectContext.configureFields (conf, bean, w.configuredFields);
             }
         }
 
         if (!w.exposeMethods.isEmpty ()) {
-            for (MethodWrapper mw : w.exposeMethods) {
+            for (var mw : w.exposeMethods) {
                 String exposeName = mw.name;
                 if (StringUtil.isEmpty (exposeName)) {
-                    Class<?> rt = mw.method.getReturnType ();
+                    var rt = mw.method.getReturnType ();
                     exposeName = rt.getSimpleName ();
                     exposeName = Character.toLowerCase (exposeName.charAt (0)) + exposeName.substring (1);
                 }
                 ReferenceUtil.checkAccessible (mw.method, bean);
-                Object o = mw.method.invoke (bean);
+                var o = mw.method.invoke (bean);
                 if (o == null) {
                     throw new IntrospectionException ("method " + mw.method + " returns a null object!");
                 }
@@ -95,8 +92,8 @@ public class ObjectContextScanner extends ClassScanner {
     private void findInjectField (Class<?> type, Wrapper wrapper) {
         while (type != null && type != Object.class) {
             Field[] fields = type.getDeclaredFields ();
-            for (Field field : fields) {
-                Class<?> ft = field.getType ();
+            for (var field : fields) {
+                var ft = field.getType ();
                 if (field.isAnnotationPresent (Resource.class) && !ft.isPrimitive ()) {
                     wrapper.injectFields.add (field);
                 } else if (field.isAnnotationPresent (AConfigured.class)) {
@@ -121,22 +118,22 @@ public class ObjectContextScanner extends ClassScanner {
      * 若违反了以上规则，将抛出 {@link IntrospectionException} 异常
      */
     private void findMethods (Class<?> type, Wrapper wrapper) throws IntrospectionException {
-        Method[] methods = type.getMethods ();
-        for (Method method : methods) {
+        var methods = type.getMethods ();
+        for (var method : methods) {
             if (method.isAnnotationPresent (Resource.class)) {
                 if (method.isSynthetic ()) {
                     // 合成方法会被跳过，不管是否有 @Resource 注解
                     continue;
                 }
                 String name = method.getName ();
-                Resource res = method.getAnnotation (Resource.class);
+                var res = method.getAnnotation (Resource.class);
 
                 if (name.startsWith ("set")) {  // setter
-                    Class<?>[] pts = method.getParameterTypes ();
+                    var pts = method.getParameterTypes ();
                     if (pts.length != 1) {
                         throw new IntrospectionException ("a method annotated as Resource can ONLY have ONE parameter");
                     }
-                    MethodWrapper mw = new MethodWrapper ();
+                    var mw = new MethodWrapper ();
                     mw.method = method;
 
                     if (!StringUtil.isEmpty (res.name ()))
@@ -149,7 +146,7 @@ public class ObjectContextScanner extends ClassScanner {
                     if (method.getParameterCount () != 0) {
                         throw new IntrospectionException ("a method annotated as exposed resource cannot contains any parameters");
                     }
-                    MethodWrapper mw = new MethodWrapper ();
+                    var mw = new MethodWrapper ();
                     mw.method = method;
                     if (!StringUtil.isEmpty (res.name ())) {
                         mw.name = res.name ();

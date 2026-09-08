@@ -29,7 +29,7 @@ public class WebComponentHelper {
 
     public static<T> void injectFields (T instance, Cache c) {
         if (!c.fields.isEmpty ()) { // 注入字段
-            for (Field field : c.fields) {
+            for (var field : c.fields) {
                 Class<?> ft = field.getType ();
                 Resource res = field.getAnnotation (Resource.class);
                 Object target;
@@ -58,7 +58,7 @@ public class WebComponentHelper {
 
     public static<T> void injectMethod (T instance, Cache c) throws InstantiationException {
         if (!c.methods.isEmpty ()) {
-            for (Method method : c.methods) {
+            for (var method : c.methods) {
                 ReferenceUtil.checkAccessible (method, instance);
                 int count = method.getParameterCount ();
                 if (count == 1 && method.isAnnotationPresent (Resources.class)) {
@@ -107,7 +107,7 @@ public class WebComponentHelper {
 
     private static<T> void injectConfig (T instance, Cache c) throws InstantiationException {
         if (!c.config.isEmpty ()) { // 注入配置
-            for (AccessibleObject ao : c.config) {
+            for (var ao : c.config) {
                 AConfigured conf = null;
                 Class<?> ft = null;
                 if (ao instanceof Field field) {
@@ -185,7 +185,7 @@ public class WebComponentHelper {
 
     public static void findField (Class<?> type, Collection<Field> fieldsInjection, Collection<AccessibleObject> configs) {
         Field[] fields = type.getDeclaredFields ();
-        for (Field field : fields) {
+        for (var field : fields) {
             if (field.isAnnotationPresent (Resource.class)) {
                 fieldsInjection.add (field);
             } else if (field.isAnnotationPresent (AConfigured.class)) {
@@ -201,7 +201,7 @@ public class WebComponentHelper {
 
     public static void findMethods (Class<?> type, Cache c) throws InstantiationException {
         Method[] methods = type.getDeclaredMethods ();
-        for (Method method : methods) {
+        for (var method : methods) {
             int count = method.getParameterCount ();
             if (count == 0) {
                 if (method.isAnnotationPresent (PostConstruct.class)) {
@@ -223,7 +223,7 @@ public class WebComponentHelper {
                 }
             } else if (method.isAnnotationPresent (Resource.class)) {
                 Annotation[][] pas = method.getParameterAnnotations ();
-                for (Annotation[] pa : pas) {
+                for (var pa : pas) {
                     boolean matches = false;
                     for (Annotation a : pa) {
                         if (a instanceof Resource) {

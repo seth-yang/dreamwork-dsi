@@ -35,7 +35,7 @@ public class SimpleInjection {
      */
     public static ObjectName registerJMXService (String name, Object mbean) {
         try {
-            ObjectName oName = new ObjectName (JMX_GROUP, "name", name);
+            var oName = new ObjectName (JMX_GROUP, "name", name);
             server.registerMBean (mbean, oName);
             return oName;
         } catch (Exception ex) {

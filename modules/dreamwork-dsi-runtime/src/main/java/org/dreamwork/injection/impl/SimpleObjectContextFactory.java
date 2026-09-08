@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import static org.dreamwork.injection.IObjectContext.CONTEXT_ANNOTATION_KEY;
@@ -119,10 +118,10 @@ public class SimpleObjectContextFactory {
     }
 
     private IObjectContext createObjectContext (String... args) throws Exception {
-        ClassLoader loader = type.getClassLoader ();
+        var loader = type.getClassLoader ();
 
         // 解析和处理配置/参数
-        PropertyConfiguration configuration = initConfiguration (loader, args);
+        var configuration = initConfiguration (loader, args);
         if (configuration == null) {
             return null;
         }
@@ -133,16 +132,16 @@ public class SimpleObjectContextFactory {
         }
         AInjectionContext ic = type.getAnnotation (AInjectionContext.class);
 
-        int port = configuration.getInt ("org.dreamwork.dsi.shutdown-port", -1);
+        var port = configuration.getInt ("org.dreamwork.dsi.shutdown-port", -1);
         port = Math.max (port, ic.shutdownPort ());
 
         // 创建 SimpleObjectContext
         // @Since 2.0.0
-        SimpleObjectContext root = new SimpleObjectContext (port);
+        var root = new SimpleObjectContext (port);
         // 注册全局配置
         root.register ("global-config", configuration);
         // 注册全局的懒加载器
-        LazyScanner lazy = new LazyScanner ();
+        var lazy = new LazyScanner ();
         root.register (lazy);
 
         // 注册 AInjectionContext 本身
@@ -153,7 +152,7 @@ public class SimpleObjectContextFactory {
         Annotation[] annotations = type.getAnnotations ();
         root.register (CONTEXT_ANNOTATION_KEY, annotations);
 
-        ClassScanner scanner = new ObjectContextScanner (root);
+        var scanner = new ObjectContextScanner (root);
 
         Set<String> packages = new HashSet<> ();
         // @since 3.1.1 自动装配
@@ -178,7 +177,7 @@ public class SimpleObjectContextFactory {
     }
 
     private void autoWireStarters (IObjectContext root, ClassLoader loader, Set<String> packages) throws IOException {
-        Enumeration<URL> resources = loader.getResources ("META-INF/");
+        var resources = loader.getResources ("META-INF/");
         URL url;
         String protocol;
         while (resources.hasMoreElements ()) {
@@ -198,12 +197,12 @@ public class SimpleObjectContextFactory {
     }
 
     private void autoWireFileHook (IObjectContext root, URL url, ClassLoader loader, Set<String> packages) {
-        File dir = new File (url.getFile ());
+        var dir = new File (url.getFile ());
         if (!dir.exists () || !dir.canRead ()) {
             return;
         }
 
-        File[] files = dir.listFiles (file -> accepted (file.getName ()));
+        var files = dir.listFiles (file -> accepted (file.getName ()));
         if (files != null && files.length > 0) {
             Arrays.stream (files).forEach (file -> {
                 try (InputStream in = Files.newInputStream (file.toPath ())) {
@@ -232,16 +231,16 @@ public class SimpleObjectContextFactory {
         if (logger.isTraceEnabled ()) {
             logger.trace ("trying find auto wire config from {}", file.getCanonicalPath ());
         }
-        try (JarFile jar = new JarFile (file)) {
-            Enumeration<JarEntry> entries = jar.entries ();
+        try (var jar = new JarFile (file)) {
+            var entries = jar.entries ();
             while (entries.hasMoreElements ()) {
-                JarEntry entry = entries.nextElement ();
-                String name = entry.getName ();
+                var entry = entries.nextElement ();
+                var name = entry.getName ();
 
                 if (name.startsWith ("META-INF/")) {
                     name = name.substring (PREFIX_LENGTH);
                     if (accepted (name)) {
-                        String resource = url + name;
+                        var resource = url + name;
                         try (InputStream in = jar.getInputStream (entry)) {
                             autoWire (root, resource, in, loader, packages);
                         } catch (IOException | InstanceAlreadyExistsException ex) {
@@ -258,12 +257,12 @@ public class SimpleObjectContextFactory {
 
     private void autoWire (IObjectContext root, String resource, InputStream in,
                            ClassLoader loader, Set<String> packages) throws IOException, InstanceAlreadyExistsException {
-        Properties props = new Properties ();
+        var props = new Properties ();
         props.load (in);
-        for (String key : props.stringPropertyNames ()) {
+        for (var key : props.stringPropertyNames ()) {
             key = key.trim ();
             if (key.startsWith ("dsi.") && key.endsWith (".hook")) {
-                String className = props.getProperty (key).trim ();
+                var className = props.getProperty (key).trim ();
                 autoWire (root, className, resource, loader, packages);
             }
         }
@@ -272,7 +271,7 @@ public class SimpleObjectContextFactory {
     private void autoWire (IObjectContext root, String className, String resource,
                            ClassLoader loader, Set<String> packages) throws IOException, InstanceAlreadyExistsException {
         try {
-            Class<?> type = Class.forName (className);
+            var type = Class.forName (className);
             if (!IObjectContextHook.class.isAssignableFrom (type)) {
                 if (logger.isWarnEnabled ()) {
                     logger.warn ("{} does not implement {}, ignore this resource from {}",
@@ -310,7 +309,7 @@ public class SimpleObjectContextFactory {
             }
 
             // since 1.0.3
-            Map<String, ClassScanner> dict = hook.getExtraScanners ();
+            var dict = hook.getExtraScanners ();
             if (dict != null && !dict.isEmpty ()) {
                 LazyScanner lazy = root.getBean (LazyScanner.class);
                 lazy.merge (dict);

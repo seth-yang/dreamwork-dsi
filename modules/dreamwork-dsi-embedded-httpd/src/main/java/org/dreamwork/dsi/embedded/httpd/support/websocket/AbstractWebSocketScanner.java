@@ -29,7 +29,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
     public Set<ServerEndpointConfig> getEndpointConfigs (Set<Class<? extends Endpoint>> endpointClasses) {
         Set<ServerEndpointConfig> set = new HashSet<> ();
         Set<Class<? extends Endpoint>> filters = getSupportedEndpointClasses ();
-        for (Class<? extends Endpoint> type : endpointClasses) {
+        for (var type : endpointClasses) {
             if (type.isAnnotationPresent (AWebSocket.class)) {
                 int modifier = type.getModifiers ();
                 if (Modifier.isAbstract (modifier) || type.isInterface ()) {
@@ -48,7 +48,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
                 }
 
                 if (filters.contains (type)) {
-                    Class<? extends ServerEndpointConfig.Configurator> typeOfCfg = ws.configurator ();
+                    var typeOfCfg = ws.configurator ();
                     ServerEndpointConfig.Configurator cfg;
                     if (typeOfCfg == WebSocketHttpConfigurator.class) {
                         cfg = new WebSocketHttpConfigurator (
@@ -60,7 +60,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
                     } else {
                         cfg = loadConfigurator (typeOfCfg);
                     }
-                    ServerEndpointConfig.Builder builder = ServerEndpointConfig.Builder.create (type, mapping);
+                    var builder = ServerEndpointConfig.Builder.create (type, mapping);
                     builder.configurator (cfg);
                     ServerEndpointConfig config = builder.build ();
                     set.add (config);
@@ -77,7 +77,7 @@ public abstract class AbstractWebSocketScanner implements ServerApplicationConfi
     @Override
     public Set<Class<?>> getAnnotatedEndpointClasses (Set<Class<?>> scanned) {
         Set<Class<?>> set = new HashSet<> ();
-        Set<Class<?>> filters = getSupportedAnnotatedEndpointClasses ();
+        var filters = getSupportedAnnotatedEndpointClasses ();
 
         if (filters == null || filters.isEmpty ()) {
             return scanned;

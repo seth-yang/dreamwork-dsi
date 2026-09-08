@@ -53,7 +53,7 @@ public class WebMappedMethod {
             parameters = new ArrayList<> (parameterAnnotations.length);
             for (Annotation[] as : parameterAnnotations) {
                 if (as.length > 0) { // 参数指定了注解
-                    for (Annotation an : as) {
+                    for (var an : as) {
                         if (an instanceof AWebParameter awp) {
                             WebParameter wp = new WebParameter ();
                             if (awp.internal ()) {

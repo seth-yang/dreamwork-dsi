@@ -5,11 +5,10 @@ import org.dreamwork.config.PropertyConfiguration;
 import org.dreamwork.util.StringUtil;
 
 import java.util.Properties;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EnhancedConfiguration extends PropertyConfiguration {
-    private static final Pattern P = Pattern.compile ("\\$\\{(.*?)\\}");
+    private static final Pattern P = Pattern.compile ("\\$\\{(.*?)}");
 
     public EnhancedConfiguration (Properties props) {
         super (props);
@@ -17,7 +16,7 @@ public class EnhancedConfiguration extends PropertyConfiguration {
 
     @Override
     public String getString (String key, Object... params) {
-        String value = super.getString (key, params);
+        var value = super.getString (key, params);
         if (value != null && value.contains ("${")) {
             value = replace (value);
         }
@@ -26,7 +25,7 @@ public class EnhancedConfiguration extends PropertyConfiguration {
 
     @Override
     public String getString (String key, KeyValuePair<?>... params) {
-        String value = super.getString (key, params);
+        var value = super.getString (key, params);
         if (value != null && value.contains ("${")) {
             value = replace (value);
         }
@@ -34,9 +33,9 @@ public class EnhancedConfiguration extends PropertyConfiguration {
     }
 
     private String replace (String value) {
-        Matcher m = P.matcher (value);
+        var m = P.matcher (value);
         Object[] args = new Object[0];
-        StringBuffer buffer = new StringBuffer ();
+        var buffer = new StringBuilder ();
         while (m.find ()) {
             String part = m.group (1);
             String replacement = getString (part, args);

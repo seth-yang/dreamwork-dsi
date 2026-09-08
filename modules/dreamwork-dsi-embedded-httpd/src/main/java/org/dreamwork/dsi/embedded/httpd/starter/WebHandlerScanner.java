@@ -19,19 +19,18 @@ import java.util.Map;
 @Resource
 public class WebHandlerScanner implements IInjectResolvedProcessor {
     private final Map<String, Map<String, WebMappedMethod>> mappings = new HashMap<> ();
-//    private final Pattern PATTERN = Pattern.compile ("^/?(.*?)(/(.*?))?$");
     private final Logger logger   = LoggerFactory.getLogger (WebHandlerScanner.class);
 
     @Override
     public void perform (IObjectContext context) /*throws Exception */{
-        for (String beanName : context.getAllBeanNames ()) {
+        for (var beanName : context.getAllBeanNames ()) {
             Object bean = context.getBean (beanName);
-            Class<?> type = bean.getClass ();
+            var type = bean.getClass ();
             if (type.isAnnotationPresent (AWebHandler.class)) {
                 if (logger.isTraceEnabled ()) {
                     logger.trace ("found a web handler: {}", type.getCanonicalName ());
                 }
-                AWebHandler awh = type.getAnnotation (AWebHandler.class);
+                var awh = type.getAnnotation (AWebHandler.class);
                 String[] categories = awh.pattern ();
                 if (categories == null || categories.length == 0) {
                     categories = awh.value ();
@@ -40,10 +39,10 @@ public class WebHandlerScanner implements IInjectResolvedProcessor {
                     throw new IllegalArgumentException ("Invalid category");
                 }
 
-                Method[] methods = type.getMethods ();
-                for (Method method : methods) {
+                var methods = type.getMethods ();
+                for (var method : methods) {
                     if (method.isAnnotationPresent (AWebMapping.class)) {
-                        AWebMapping awm = method.getAnnotation (AWebMapping.class);
+                        var awm = method.getAnnotation (AWebMapping.class);
                         String httpMethod = awm.method ();
                         if (StringUtil.isEmpty (httpMethod)) {
                             httpMethod = "get";
@@ -57,8 +56,8 @@ public class WebHandlerScanner implements IInjectResolvedProcessor {
                             continue;
                         }
 
-                        for (String category : categories) {
-                            for (String pattern : patterns) {
+                        for (var category : categories) {
+                            for (var pattern : patterns) {
                                 if (StringUtil.isEmpty (pattern)) {
                                     pattern = "/";
                                 }
@@ -67,7 +66,7 @@ public class WebHandlerScanner implements IInjectResolvedProcessor {
                                 while (pathInfo.contains ("//")) {
                                     pathInfo = pathInfo.replace ("//", "/");
                                 }
-                                WebMappedMethod wmm = new WebMappedMethod (method, pathInfo, awh.type ());
+                                var wmm = new WebMappedMethod (method, pathInfo, awh.type ());
                                 wmm.beanName = beanName;
                                 wmm.contentType = awm.contentType ();
                                 // @since 1.1.0

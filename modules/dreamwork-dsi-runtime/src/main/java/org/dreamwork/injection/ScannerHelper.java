@@ -2,7 +2,6 @@ package org.dreamwork.injection;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Set;
 
@@ -14,9 +13,9 @@ import java.util.Set;
 public class ScannerHelper {
     public static void fillPackageNames (ClassLoader loader, String base, Set<String> list) throws IOException {
         String path = base.replace ('.', '/');
-        try (InputStream in = loader.getResourceAsStream (path)) {
+        try (var in = loader.getResourceAsStream (path)) {
             if (in != null) {
-                BufferedReader reader = new BufferedReader (new InputStreamReader (in));
+                var reader = new BufferedReader (new InputStreamReader (in));
                 String line;
                 while ((line = reader.readLine ()) != null) {
                     if (!line.contains (".")) {
@@ -41,7 +40,7 @@ public class ScannerHelper {
             array = ic.scanPackages ();
         }
 
-        for (String packageName : array) {
+        for (var packageName : array) {
             packages.add (packageName);
             if (ic.recursive ()) {
                 fillPackageNames (loader, packageName, packages);
@@ -52,7 +51,7 @@ public class ScannerHelper {
     public static void fillPackageNames (String base, String[] array, ClassLoader loader, Set<String> packages) throws IOException {
         packages.add (base);
         fillPackageNames (loader, base, packages);
-        for (String packageName : array) {
+        for (var packageName : array) {
             packages.add (packageName);
             fillPackageNames (loader, packageName, packages);
         }

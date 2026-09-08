@@ -78,7 +78,7 @@ public class SessionManager {
     }
 
     public ManagedSession create (String key) {
-        ManagedSession ms = StringUtil.isEmpty (key) ?
+        var ms = StringUtil.isEmpty (key) ?
                 new ManagedSession () : new ManagedSession (key);
         synchronized (LOCKER) {
             session.put (ms.id, ms);
@@ -135,7 +135,7 @@ public class SessionManager {
                 if (!copied.isEmpty ()) {
                     Map<String, ManagedSession> temp = new HashMap<> ();
                     long now = System.currentTimeMillis ();
-                    for (Map.Entry<String, ManagedSession> e : copied.entrySet ()) {
+                    for (var e : copied.entrySet ()) {
                         ManagedSession item = e.getValue ();
                         if (now - item.timestamp > timeout) {
                             temp.put (e.getKey (), item);
@@ -144,7 +144,7 @@ public class SessionManager {
 
                     if (!temp.isEmpty ()) {
                         synchronized (LOCKER) {
-                            for (Map.Entry<String, ManagedSession> e : temp.entrySet ()) {
+                            for (var e : temp.entrySet ()) {
                                 ManagedSession item = e.getValue ();
                                 if (now - item.timestamp > timeout) {
                                     session.remove (e.getKey ());

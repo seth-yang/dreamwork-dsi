@@ -24,16 +24,16 @@ public class ShutdownHook extends Thread {
     private ShutdownHook (int port) throws IOException {
         server = new ServerSocket (port, -1, InetAddress.getByName ("127.0.0.1"));  // 仅监听本地
         server.setSoTimeout (500);
-        String temp = System.getProperty ("java.io.tmpdir");
-        Path target = Paths.get (temp, ".shutdown-port");
+        var temp = System.getProperty ("java.io.tmpdir");
+        var target = Paths.get (temp, ".shutdown-port");
         Files.write (target, String.valueOf (port).getBytes ());
     }
 
     @Override
     public void run () {
         while (running && !this.isInterrupted ()) {
-            try (Socket socket = server.accept ()) {
-                InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress ();
+            try (var socket = server.accept ()) {
+                var address = (InetSocketAddress) socket.getRemoteSocketAddress ();
                 if (address.getAddress ().isLoopbackAddress ()) { // 从本地发起的才有用
                     cancel ();
                 } else if (logger.isTraceEnabled ()) {
@@ -48,7 +48,7 @@ public class ShutdownHook extends Thread {
 
     public void cancel () {
         running = false;
-        this.interrupt ();
+        interrupt ();
         try {
             server.close ();
         } catch (IOException ignore) {}
@@ -79,15 +79,15 @@ public class ShutdownHook extends Thread {
     }
 
     public static ShutdownHook bind (IObjectContext context, int port) throws IOException {
-        ShutdownHook hook = new ShutdownHook (port);
+        var hook = new ShutdownHook (port);
         hook.context = context;
         hook.start ();
         return hook;
     }
 
     public static void shutdown () throws IOException {
-        String temp = System.getProperty ("java.io.tmpdir");
-        Path target = Paths.get (temp, ".shutdown-port");
+        var temp = System.getProperty ("java.io.tmpdir");
+        var target = Paths.get (temp, ".shutdown-port");
         if (Files.exists (target)) {
             byte[] buff = Files.readAllBytes (target);
             String s_port = new String (buff);

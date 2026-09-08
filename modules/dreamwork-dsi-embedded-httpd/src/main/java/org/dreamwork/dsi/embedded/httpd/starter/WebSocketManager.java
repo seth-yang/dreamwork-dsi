@@ -1,5 +1,8 @@
 package org.dreamwork.dsi.embedded.httpd.starter;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import org.dreamwork.concurrent.Looper;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.AbstractWebSocket;
@@ -7,7 +10,6 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
-import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
@@ -15,9 +17,6 @@ import org.dreamwork.util.ThreadHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.annotation.Resource;
 import java.io.IOException;
 import java.lang.reflect.*;
 import java.util.*;
@@ -329,7 +328,7 @@ public class WebSocketManager {
         }
         Set<WebsocketWrapper<? extends IWebsocketCommand>> set = cache.get (type);
         WebsocketWrapper<? extends IWebsocketCommand> wrapper = null;
-        for (WebsocketWrapper<? extends IWebsocketCommand> w : set) {
+        for (var w : set) {
             if (w.socket == socket) {
                 wrapper = w;
                 break;
@@ -355,7 +354,7 @@ public class WebSocketManager {
         if (wrappers == null)
             return Collections.emptySet ();
         Set<AbstractWebSocket<T>> copied = new HashSet<> (wrappers.size ());
-        for (WebsocketWrapper<? extends IWebsocketCommand> w : wrappers) {
+        for (var w : wrappers) {
             copied.add ((AbstractWebSocket<T>) w.socket);
         }
         return copied;

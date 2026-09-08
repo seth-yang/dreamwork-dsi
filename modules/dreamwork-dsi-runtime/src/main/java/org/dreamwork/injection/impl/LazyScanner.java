@@ -11,7 +11,7 @@ class LazyScanner {
     private final Map<String, ClassScanner> cache = new ConcurrentHashMap<> ();
 
     void merge (Map<String, ClassScanner> scanners) throws InstanceAlreadyExistsException {
-        for (String key : scanners.keySet ()) {
+        for (var key : scanners.keySet ()) {
             if (cache.containsKey (key)) {
                 ClassScanner cached = cache.get (key);
                 ClassScanner scanner = scanners.get (key);

@@ -1,29 +1,25 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
+import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import org.apache.catalina.core.ApplicationServletRegistration;
 import org.apache.catalina.core.StandardWrapper;
 import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
 import org.dreamwork.injection.IObjectContext;
-import org.dreamwork.injection.ScannerHelper;
 import org.dreamwork.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebServlet;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.sql.Ref;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -55,7 +51,7 @@ public class BackendServlet extends HttpServlet {
     public void init () throws ServletException {
         super.init ();
 
-        ServletContext app = getServletContext ();
+        var app = getServletContext ();
         context = (IObjectContext) app.getAttribute (IObjectContext.class.getCanonicalName ());
         scanner = context.getBean (WebHandlerScanner.class);
         manager = context.getBean (SessionManager.class);
@@ -97,7 +93,7 @@ public class BackendServlet extends HttpServlet {
                 Map<String, ? extends ServletRegistration> mappings = getServletContext ().getServletRegistrations ();
                 ServletRegistration base = mappings.get ("default");
 
-                Class<ApplicationServletRegistration> type = ApplicationServletRegistration.class;
+                var type = ApplicationServletRegistration.class;
                 Field field = type.getDeclaredField ("wrapper");
                 ReferenceUtil.checkAccessible (field, base);
                 StandardWrapper wrapper = (StandardWrapper) field.get (base);
@@ -280,7 +276,7 @@ public class BackendServlet extends HttpServlet {
         // @since 1.1.1
         String key = request.getHeader (KEY_MSA);
         ManagedSession session = null;
-        if (!StringUtil.isEmpty (key)) {
+        if (StringUtil.isNotEmpty (key)) {
             session = manager.get (key);
             response.setHeader (KEY_MSA, key);
         }
@@ -330,22 +326,6 @@ public class BackendServlet extends HttpServlet {
                 } else {
                     throw new IllegalArgumentException ("unsupported internal type: " + type);
                 }
-/*
-            } else if (wp.internal) {
-                if (type == HttpContext.class) {
-                    args[i] = HttpContext.current ();
-                } else if (type == ServletContext.class) {
-                    args[i] = getServletContext ();
-                } else if (type == HttpServletRequest.class) {
-                    args[i] = request;
-                } else if (type == HttpServletResponse.class) {
-                    args[i] = response;
-                } else if (type == HttpSession.class) {
-                    args[i] = request.getSession ();
-                } else {
-                    throw new IllegalArgumentException ("unsupported internal type: " + type);
-                }
-*/
             } else {
                 String temp;
                 switch (wp.location) {
@@ -354,10 +334,10 @@ public class BackendServlet extends HttpServlet {
                             patchPUTParameters (request, paramsMap);
                             patched = true;
                         }
-//                        temp = request.getParameter (wp.name);
+
                         temp = paramsMap.get (wp.name);
                         if (StringUtil.isEmpty (temp)) {
-                            if (!StringUtil.isEmpty (wp.defaultValue)) {
+                            if (StringUtil.isNotEmpty (wp.defaultValue)) {
                                 temp = wp.defaultValue;
                             }
                         }
@@ -367,7 +347,6 @@ public class BackendServlet extends HttpServlet {
                         if (contentType.contains ("json") || contentType.contains ("text/plain")) {
                             temp = new String (IOUtil.read (request.getInputStream ()));
                         } else {
-//                            temp = request.getParameter (wp.name);
                             temp = paramsMap.get (wp.name);
                         }
                         break;
@@ -405,7 +384,7 @@ public class BackendServlet extends HttpServlet {
                         break;
 
                     case datetime:
-                        if (!StringUtil.isEmpty (temp)) {
+                        if (StringUtil.isNotEmpty (temp)) {
                             try {
                                 args[i] = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss").parse (temp);
                             } catch (ParseException pe) {
@@ -471,26 +450,26 @@ public class BackendServlet extends HttpServlet {
 
     private Object translate (String expression, Class<?> type) {
 
-        if (type == int.class || (type == Integer.class && !StringUtil.isEmpty (expression))) {
+        if (type == int.class || (type == Integer.class && StringUtil.isNotEmpty (expression))) {
             return Integer.parseInt (expression);
         }
         if (type == byte.class || type == Byte.class) {
             return Byte.parseByte (expression);
         }
-        if (type == char.class || (type == Character.class && !StringUtil.isEmpty (expression))) {
+        if (type == char.class || (type == Character.class && StringUtil.isNotEmpty (expression))) {
             return expression.isEmpty () ? '\u0000' : expression.charAt (0);
         }
-        if (type == short.class || (type == Short.class && !StringUtil.isEmpty (expression))) {
+        if (type == short.class || (type == Short.class && StringUtil.isNotEmpty (expression))) {
             return Short.parseShort (expression);
         }
-        if (type == long.class || (type == Long.class && !StringUtil.isEmpty (expression))) {
+        if (type == long.class || (type == Long.class && StringUtil.isNotEmpty (expression))) {
             return Long.parseLong (expression);
         }
         if (type == boolean.class || type == Boolean.class) {
             try {
                 return Boolean.parseBoolean (expression);
             } catch (Exception ex) {
-                if (!StringUtil.isEmpty (expression)) {
+                if (StringUtil.isNotEmpty (expression)) {
                     Matcher m = P_TRUE.matcher (expression);
                     if (m.matches ()) {
                         return true;
@@ -503,28 +482,28 @@ public class BackendServlet extends HttpServlet {
                 throw new NumberFormatException ("cannot convert " + expression + " to boolean");
             }
         }
-        if (type == float.class || (type == Float.class && !StringUtil.isEmpty (expression))) {
+        if (type == float.class || (type == Float.class && StringUtil.isNotEmpty (expression))) {
             return Float.parseFloat (expression);
         }
-        if (type == double.class || (type == Double.class && !StringUtil.isEmpty (expression))) {
+        if (type == double.class || (type == Double.class && StringUtil.isNotEmpty (expression))) {
             return Double.parseDouble (expression);
         }
         if (type.isAssignableFrom (String.class)) {
             return expression;
         }
-        if (type == BigDecimal.class && !StringUtil.isEmpty (expression)) {
+        if (type == BigDecimal.class && StringUtil.isNotEmpty (expression)) {
             return new BigDecimal (expression);
         }
-        if (type == BigInteger.class && !StringUtil.isEmpty (expression)) {
+        if (type == BigInteger.class && StringUtil.isNotEmpty (expression)) {
             return new BigInteger (expression);
         }
-        if (type == Date.class && !StringUtil.isEmpty (expression)) {
+        if (type == Date.class && StringUtil.isNotEmpty (expression)) {
             return toDate (expression);
         }
-        if (type == java.sql.Date.class && !StringUtil.isEmpty (expression)) {
+        if (type == java.sql.Date.class && StringUtil.isNotEmpty (expression)) {
             return new java.sql.Date (toDate (expression).getTime ());
         }
-        if (type == java.sql.Timestamp.class && !StringUtil.isEmpty (expression)) {
+        if (type == java.sql.Timestamp.class && StringUtil.isNotEmpty (expression)) {
             return new java.sql.Timestamp (toDate (expression).getTime ());
         }
         return StringUtil.isEmpty (expression) ? null : JsonHelper.fromJson (expression, type);
@@ -542,13 +521,13 @@ public class BackendServlet extends HttpServlet {
         }
     }
 
-    private void urlDecode (String body, Map<String, String> map) throws IOException {
+    private void urlDecode (String body, Map<String, String> map) {
         String[] array = body.split ("&");
         for (String pair : array) {
             if (pair.contains ("=")) {
                 String[] parts = pair.trim ().split ("=");
                 String name = URLDecoder.decode (parts[0].trim (), UTF_8);
-                if (!StringUtil.isEmpty (parts[1])) {
+                if (StringUtil.isNotEmpty (parts[1])) {
                     String value = URLDecoder.decode (parts[1].trim (), UTF_8);
                     map.put (name, value);
                 } else {
@@ -573,13 +552,13 @@ public class BackendServlet extends HttpServlet {
                 String name = en.nextElement ();
                 map.put (name, request.getParameter (name));
             }
-        } else if ("put".equals (method) && !StringUtil.isEmpty (contentType) && contentType.contains ("application/x-www-form-urlencoded")) {
+        } else if ("put".equals (method) && StringUtil.isNotEmpty (contentType) && contentType.contains ("application/x-www-form-urlencoded")) {
             String query = request.getQueryString ();
-            if (!StringUtil.isEmpty (query)) {
+            if (StringUtil.isNotEmpty (query)) {
                 urlDecode (query, map);
             }
             String body = new String (IOUtil.read (request.getInputStream ()));
-            if (!StringUtil.isEmpty (body)) {
+            if (StringUtil.isNotEmpty (body)) {
                 urlDecode (body, map);
             }
         }

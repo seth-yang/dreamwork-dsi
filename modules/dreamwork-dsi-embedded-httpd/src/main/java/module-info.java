@@ -4,6 +4,7 @@ module org.dreamwork.dsi.embedded.httpd {
     requires org.slf4j;
     requires dreamwork.base;
     requires org.apache.tomcat.embed.websocket;
+//    requires jakarta.servlet;
     exports org.dreamwork.dsi.embedded.httpd.annotation;
     exports org.dreamwork.dsi.embedded.httpd.support;
     exports org.dreamwork.dsi.embedded.httpd.starter;
