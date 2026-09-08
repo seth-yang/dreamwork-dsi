@@ -2,6 +2,7 @@ package org.dreamwork.injection.impl;
 
 import org.dreamwork.cli.Argument;
 import org.dreamwork.cli.ArgumentParser;
+import org.dreamwork.config.IConfiguration;
 import org.dreamwork.config.PropertyConfiguration;
 import org.dreamwork.injection.*;
 import org.dreamwork.util.FileInfo;
@@ -96,6 +97,8 @@ public class SimpleObjectContextFactory {
     private final Class<?> type;
     private final Path javaHome;
 
+    private BroadcastServiceHook broadcastServiceHook;
+
     /**
      * 对象托管容器的工厂方法
      *
@@ -144,6 +147,9 @@ public class SimpleObjectContextFactory {
         var lazy = new LazyScanner ();
         root.register (lazy);
 
+        // 尝试开启本地广播系统
+        initLocalBroadcastService (ic, configuration, root);
+
         // 注册 AInjectionContext 本身
         // @since 2.1.2
         root.register (CONTEXT_DESCRIBER, ic);
@@ -171,6 +177,19 @@ public class SimpleObjectContextFactory {
 
         Runtime.getRuntime ().addShutdownHook (new Thread (() -> {
             Thread.currentThread ().setName ("SimpleObjectContext.ShutdownHook");
+
+            // 停止本地广播系统
+            // @since 3.0.0
+            if (broadcastServiceHook != null) {
+                var hook = broadcastServiceHook;
+                broadcastServiceHook = null;
+                try {
+                    hook.destroy ();
+                } catch (Exception ex) {
+                    logger.warn (ex.getMessage (), ex);
+                }
+            }
+
             root.dispose ();
         }));
         return root;
@@ -719,6 +738,35 @@ public class SimpleObjectContextFactory {
                         scanner.scan (names);
                     }
                 }
+            }
+        }
+    }
+
+    private void initLocalBroadcastService (AInjectionContext ic, IConfiguration configuration, IObjectContext root) {
+        // 检测并开启本地广播系统
+        // since 3.0.0
+        boolean enabled = ic.broadcastSupported ();
+        if (!enabled) {
+            enabled = configuration.getBoolean ("org.dreamwork.dsi.broadcast.enabled", false);
+        }
+        if (enabled) {
+            broadcastServiceHook = new BroadcastServiceHook (root);
+            broadcastServiceHook.enabled = true;
+
+            int workers = configuration.getInt ("org.dreamwork.dsi.broadcast.workers", -1);
+            if (workers < 0) {
+                workers = ic.broadcastWorkers ();
+            }
+            if (workers < 0) {
+                // 一路都没配置，使用默认值 8
+                workers = 8;
+            }
+
+            broadcastServiceHook.workers = workers;
+            try {
+                broadcastServiceHook.init ();
+            } catch (Exception ex) {
+                logger.warn (ex.getMessage (), ex);
             }
         }
     }

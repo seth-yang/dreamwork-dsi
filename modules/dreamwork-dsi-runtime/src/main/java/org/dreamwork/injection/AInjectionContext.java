@@ -54,6 +54,16 @@ public @interface AInjectionContext {
     boolean recursive () default false;
 
     /**
+     * 是否开启 ILocalBroadcaster 自动注册
+     * @return 是否自动注册本例广播支持
+     *
+     * @since 3.0.0
+     */
+    boolean broadcastSupported () default false;
+
+    int broadcastWorkers () default -1;
+
+    /**
      * 命令行参数定义的 {@code json} 结构.
      * <p>扫描器的查找顺序：</p>
      * <ol>

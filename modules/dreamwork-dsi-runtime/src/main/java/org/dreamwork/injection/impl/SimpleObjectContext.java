@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * <p>托管容器的简单实现</p>
  */
 public class SimpleObjectContext implements IObjectContext {
-    public static final String VERSION_INFO = "Dreamwork Simple Injection V2.0.0";
+    public static final String VERSION_INFO = "Dreamwork Simple Injection V3.0.0";
     private static final Pattern TRUE = Pattern.compile ("^true|t|1|on$", Pattern.CASE_INSENSITIVE);
     private static final Pattern FALSE = Pattern.compile ("^false|f|0|off$", Pattern.CASE_INSENSITIVE);
 
