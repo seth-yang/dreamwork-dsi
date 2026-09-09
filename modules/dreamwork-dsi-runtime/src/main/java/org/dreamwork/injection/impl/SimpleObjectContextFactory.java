@@ -5,10 +5,8 @@ import org.dreamwork.cli.ArgumentParser;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.config.PropertyConfiguration;
 import org.dreamwork.injection.*;
-import org.dreamwork.util.FileInfo;
-import org.dreamwork.util.IOUtil;
-import org.dreamwork.util.JsonHelper;
-import org.dreamwork.util.StringUtil;
+import org.dreamwork.misc.AlgorithmUtil;
+import org.dreamwork.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,10 +22,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Collection;
 import java.util.jar.JarFile;
 
-import static org.dreamwork.injection.IObjectContext.CONTEXT_ANNOTATION_KEY;
-import static org.dreamwork.injection.IObjectContext.CONTEXT_DESCRIBER;
+import static org.dreamwork.injection.IObjectContext.*;
 import static org.dreamwork.injection.ScannerHelper.fillPackageNames;
 
 /**
@@ -406,6 +404,7 @@ public class SimpleObjectContextFactory {
         }
 
         PropertyConfiguration conf = mergeConfig (parser);
+        patchApplicationName (ic, conf);
 
         try {
             if (!parser.isArgPresent ("without-logs"))
@@ -560,7 +559,7 @@ public class SimpleObjectContextFactory {
         }
     }
 
-    private static void initLogger (ClassLoader loader, PropertyConfiguration conf, ArgumentParser parser) throws IOException {
+    private static void initLogger (ClassLoader loader, PropertyConfiguration conf, ArgumentParser parser) throws InstantiationException, IOException {
         String logLevel, logFile;
         if (parser.isArgPresent ('v')) {
             logLevel = "TRACE";
@@ -589,19 +588,49 @@ public class SimpleObjectContextFactory {
             System.out.printf ("## log file: %s ##%n", file.getCanonicalFile ());
         }
 
-        String className = "org.apache.log4j.PropertyConfigurator";
         boolean log4j = false;
-        try {
-            Class.forName (className);
-            log4j = true;
-        } catch (ClassNotFoundException ex) {
-            // log4j not exists.
+        ILoggingService service = null;
+        try (InputStream in = loader.getResourceAsStream ("META-INF/logging-service")) {
+            if (in != null) {
+                Properties props = new Properties ();
+                props.load (in);
+                String typeName = props.getProperty ("logging.service.impl");
+                try {
+                    var type = Class.forName (typeName);
+                    if (ILoggingService.class.isAssignableFrom (type)) {
+                        try {
+                            var builder = type.getConstructor ();
+                            try {
+                                service = (ILoggingService) builder.newInstance ();
+                            } catch (Exception ex) {
+                                throw new InstantiationException (ex.getMessage ());
+                            }
+                        } catch (NoSuchMethodException ex) {
+                            throw new InstantiationException ("Only the default constructor is supported.");
+                        }
+                    } else {
+                        throw new InstantiationException ("");
+                    }
+                } catch (ClassNotFoundException ex) {
+                    System.out.println ("[warn] there's no logging service hook present");
+                }
+            }
         }
 
-        if (log4j)
-            initLog4J (loader, logLevel, logFile, parser, conf);
-        else
+        boolean initialed = false;
+        if (service != null) {
+            try {
+                service.init (loader, logLevel, logFile, parser, conf);
+                initialed = true;
+            } catch (Exception ex) {
+                ex.printStackTrace (System.err);
+                System.err.println ("cannot initial logging service from spi, fall back to jdk logging service");
+            }
+        }
+
+        if (!initialed) {
             initJdkLogger (loader, logLevel, logFile);
+        }
     }
 
     private static void initJdkLogger (ClassLoader loader, String logLevel, String logFile) throws IOException {
@@ -687,7 +716,7 @@ public class SimpleObjectContextFactory {
 
             Properties raw = conf.getRawProperties ();
             raw.stringPropertyNames ().stream()
-                    .filter (name -> name.startsWith ("logger.level."))
+                    .filter (name -> name.startsWith ("logging.level."))
                     .forEach (name -> {
                         String value = raw.getProperty (name);
                         props.setProperty (name, value);
@@ -768,6 +797,31 @@ public class SimpleObjectContextFactory {
             } catch (Exception ex) {
                 logger.warn (ex.getMessage (), ex);
             }
+        }
+    }
+
+    private void patchApplicationName (AInjectionContext ic, PropertyConfiguration conf) {
+        if (!conf.contains (APP_NAME_KEY)) {
+            String appName = ic.applicationName ();
+            if (StringUtil.isEmpty (appName)) {
+                Set<String> set = new HashSet<> ();
+                set.addAll (CollectionCreator.asSet (ic.scanPackages ()));
+                set.addAll (CollectionCreator.asSet (ic.value ()));
+                set.addAll (CollectionCreator.asSet (ic.argumentDefinition ()));
+                set.addAll (CollectionCreator.asSet (ic.websocketPackages ()));
+                set.addAll (CollectionCreator.asSet (ic.webComponentPackages ()));
+                List<String> list = new ArrayList<> (set);
+                Collections.sort (list);
+                var text = list.toString ();
+                try {
+                    var buff = AlgorithmUtil.md5 (text.getBytes ());
+                    appName = StringUtil.byte2hex (buff, false);
+                } catch (Exception ex) {
+                    throw new RuntimeException (ex);
+                }
+            }
+
+            conf.setRawProperty (APP_NAME_KEY, appName);
         }
     }
 }

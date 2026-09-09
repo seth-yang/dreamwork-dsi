@@ -1,0 +1,1 @@
+logging.service.impl = org.dreamwork.injection.logging.Log4jAdapter

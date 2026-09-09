@@ -11,6 +11,12 @@ import java.lang.annotation.*;
 @Inherited
 public @interface AInjectionContext {
     /**
+     * 应用程序名称
+     * @return 应用程序名称
+     */
+    String applicationName () default "";
+
+    /**
      * {@link #scanPackages() scanPackages} 的快捷方式
      * @return 需要扫描的包名
      */

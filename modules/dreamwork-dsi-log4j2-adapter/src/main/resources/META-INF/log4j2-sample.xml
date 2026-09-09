@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Log4j2 配置文件
+    放置位置: src/main/resources/log4j2.xml
+    Log4j2 启动时会自动扫描 classpath 并加载, 无需手动初始化。
+
+    级别(由低到高): TRACE < DEBUG < INFO < WARN < ERROR < FATAL
+    优先级: 具体类 > 包 > Root
+-->
+<Configuration status="warn" monitorInterval="30">
+
+    <!-- 全局属性, 可通过 ${sys:xxx} / ${env:xxx} 覆盖 -->
+    <Properties>
+        <Property name="LOG_HOME">logs</Property>
+        <Property name="APP_NAME">application</Property>
+        <Property name="LOG_PATTERN">
+            %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+        </Property>
+        <Property name="LOG_PATTERN_COLORED">
+            %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight{%-5level} %logger{36} - %msg%n
+        </Property>
+    </Properties>
+
+    <!-- 追加器(Appender): 定义日志输出目的地 -->
+    <Appenders>
+
+        <!-- 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN_COLORED}"/>
+        </Console>
+
+        <!-- 全部日志: 按天 + 大小滚动切割 -->
+        <RollingFile name="RollingFileAll"
+                     fileName="${LOG_HOME}/${APP_NAME}.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天零点滚动 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <!-- 单文件超过 100MB 滚动 -->
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <!-- 最多保留 30 天 / 总大小 20GB -->
+            <DefaultRolloverStrategy max="30">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfAccumulatedFileSize exceeds="20GB"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!-- 错误日志: 单独拆分, 便于告警排查 -->
+        <RollingFile name="RollingFileError"
+                     fileName="${LOG_HOME}/${APP_NAME}-error.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-error-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+    </Appenders>
+
+    <!-- 记录器(Logger): 定义各包/类的日志级别 -->
+    <Loggers>
+
+        <!-- ========== 示例: 指定包为 TRACE ========== -->
+        <Logger name="com.example.mapper" level="trace" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAll"/>
+        </Logger>
+
+        <!-- ========== 示例: 指定具体类为 TRACE ========== -->
+        <Logger name="com.example.service.UserService" level="trace" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAll"/>
+        </Logger>
+
+        <!-- 第三方库: 抑制多余日志, 只保留 WARN 以上 -->
+        <Logger name="org.springframework" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAll"/>
+        </Logger>
+        <Logger name="org.apache.kafka" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAll"/>
+        </Logger>
+
+        <!-- 根记录器: 兜底规则 -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAll"/>
+            <!-- 只把 ERROR 及以上单独写入 error 文件 -->
+            <AppenderRef ref="RollingFileError" level="error"/>
+        </Root>
+
+    </Loggers>
+
+</Configuration>

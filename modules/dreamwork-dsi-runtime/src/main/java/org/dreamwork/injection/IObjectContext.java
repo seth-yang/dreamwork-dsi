@@ -14,6 +14,8 @@ import java.util.Set;
  * 简单的对象容器
  */
 public interface IObjectContext extends IDisposable {
+    String APP_NAME_KEY = "dreamwork.dsi.app.name";
+
     /**
      * 根据给定的名称索引容器内的对象
      * @param name 对象名称

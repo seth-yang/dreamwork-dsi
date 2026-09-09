@@ -6,4 +6,5 @@ module org.dreamwork.dsi.runtime {
     requires org.slf4j;
     requires java.management;
     requires jakarta.annotation;
+    requires com.fasterxml.jackson.databind;
 }
