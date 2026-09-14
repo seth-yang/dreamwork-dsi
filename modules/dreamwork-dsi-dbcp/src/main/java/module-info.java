@@ -1,9 +1,11 @@
 module org.dreamwork.dsi.dbcp {
-    requires org.dreamwork.dsi.runtime;
+    requires java.sql;
+    requires transitive org.dreamwork.dsi.runtime;
     requires org.slf4j;
     requires jakarta.annotation;
-    requires dreamwork.base;
-    requires org.apache.tomcat.dbcp;
+    requires transitive dreamwork.base;
+    requires transitive org.apache.commons.dbcp2;
 
-    opens org.dreamwork.dsi.dbcp.starter to org.dreamwork.dsi.runtime;
+    opens org.dreamwork.dsi.dbcp.starter to
+            dreamwork.base, org.dreamwork.dsi.runtime;
 }

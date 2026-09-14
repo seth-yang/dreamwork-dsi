@@ -1,5 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.starter;
 
+import jakarta.annotation.Resource;
+import jakarta.servlet.ServletException;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler;
 import org.dreamwork.dsi.embedded.httpd.annotation.AWebMapping;
 import org.dreamwork.dsi.embedded.httpd.support.WebHandler;
@@ -10,9 +12,6 @@ import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Resource;
-import jakarta.servlet.ServletException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,7 +83,7 @@ public class WebHandlerScanner implements IInjectResolvedProcessor {
                                 }
                                 map.put (pathInfo, wmm);
                                 if (logger.isTraceEnabled ()) {
-                                    logger.trace ("a web mapped method is mapped: {} <=> {}", pathInfo, wmm.method);
+                                    logger.trace ("a web mapped method is mapped: [{}]{} <=> {}", httpMethod, pathInfo, wmm.method);
                                 }
                             }
                         }

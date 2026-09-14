@@ -1,6 +1,6 @@
 package org.dreamwork.dsi.dbcp.starter;
 
-import org.apache.tomcat.dbcp.dbcp2.BasicDataSourceFactory;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.config.PropertyConfiguration;
 import org.dreamwork.db.PostgreSQL;

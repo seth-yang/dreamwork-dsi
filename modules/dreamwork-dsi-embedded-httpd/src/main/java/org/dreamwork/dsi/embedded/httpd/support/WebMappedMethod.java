@@ -1,6 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
 import org.dreamwork.dsi.embedded.httpd.annotation.*;
+import org.dreamwork.util.CollectionHelper;
 import org.dreamwork.util.StringUtil;
 
 import java.lang.annotation.Annotation;
@@ -27,6 +28,11 @@ public class WebMappedMethod {
     /** @since 1.1.0 */
     public boolean wrapped;
 
+    /** @since 3.0.0 */
+    public boolean sseSupported;
+    public String[] sseChannels;
+    public SseRole sseRole;
+
     public WebMappedMethod (Method method, String pattern, HandlerType type) {
         this.method  = method;
         this.pattern = pattern;
@@ -42,6 +48,17 @@ public class WebMappedMethod {
 
         if (method == null) {
             throw new NullPointerException ("method");
+        }
+
+        // 是否 SSE 服务
+        var asse = method.getAnnotation (AServerSideEvent.class);
+        if (asse != null) {
+            sseSupported = true;
+            sseRole = asse.role ();
+            sseChannels  = asse.value ();
+            if (CollectionHelper.isEmpty (sseChannels)) {
+                sseChannels = asse.channels ();
+            }
         }
 
         if (method.getParameterCount () > 0) {

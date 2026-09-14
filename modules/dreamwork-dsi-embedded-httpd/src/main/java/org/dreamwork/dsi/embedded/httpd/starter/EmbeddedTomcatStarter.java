@@ -226,6 +226,7 @@ public class EmbeddedTomcatStarter {
         Wrapper w = Tomcat.addServlet (webContext, "apis", BackendServlet.class.getCanonicalName ());
         MultipartConfigElement conf = new MultipartConfigElement (multipartLocation, maxFilesSize, maxRequestSize, fileSize);
         w.setMultipartConfigElement (conf);
+        w.setAsyncSupported (true);
         multipartConfig = conf;
 
         w.setParentClassLoader (currentLoader);

@@ -3,7 +3,6 @@ package org.dreamwork.injection.impl;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.*;
 import org.dreamwork.util.JsonHelper;
-import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+
+import static org.dreamwork.injection.ReflectHelper.checkAccessible;
 
 /**
  * 简单容器
@@ -491,7 +492,7 @@ public class SimpleObjectContext implements IObjectContext {
         // 注入需要处理的方法
         var methods = type.getDeclaredMethods ();
         for (var method : methods) {
-            if (method.isAnnotationPresent (Resource.class)) {
+//            if (method.isAnnotationPresent (Resource.class)) {
                 int code = map (method);
                 switch (code) {
                     case 1: // 标注为 Resource 的方法
@@ -501,7 +502,7 @@ public class SimpleObjectContext implements IObjectContext {
                         postConstruct = method;
                         break;
                 }
-            }
+//            }
         }
 
         return postConstruct;
@@ -532,7 +533,7 @@ public class SimpleObjectContext implements IObjectContext {
             throw new InstanceNotFoundException ("field " + field + " cannot be injected. The annotated object was not registered.");
         }
 
-        ReferenceUtil.checkAccessible (field, bean);
+        checkAccessible (field, bean);
         field.set (bean, value);
     }
 
@@ -781,7 +782,7 @@ public class SimpleObjectContext implements IObjectContext {
                     }
                 }
                 if (value != null) {
-                    ReferenceUtil.checkAccessible (field, bean);
+                    checkAccessible (field, bean);
                     field.set (bean, value);
                 }
             } else if (ac.required ()) {

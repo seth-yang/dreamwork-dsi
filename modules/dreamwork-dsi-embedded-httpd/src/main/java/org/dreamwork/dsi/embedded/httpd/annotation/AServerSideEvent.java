@@ -1,0 +1,15 @@
+package org.dreamwork.dsi.embedded.httpd.annotation;
+
+import org.dreamwork.dsi.embedded.httpd.support.SseRole;
+
+import java.lang.annotation.*;
+
+@Target ({ElementType.METHOD})
+@Retention (RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+public @interface AServerSideEvent {
+    String[] value () default {};    // alias for channels
+    String[] channels () default {};
+    SseRole role () default SseRole.Generator;
+}

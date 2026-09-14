@@ -7,7 +7,12 @@ import org.apache.catalina.core.ApplicationServletRegistration;
 import org.apache.catalina.core.StandardWrapper;
 import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
+import org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.support.sse.impl.ServerSideEventImpl;
+import org.dreamwork.dsi.embedded.httpd.support.sse.impl.SseHub;
+import org.dreamwork.dsi.embedded.httpd.support.sse.impl.SseSession;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ReflectHelper;
 import org.dreamwork.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.dreamwork.util.CollectionHelper.isNotEmpty;
+
 @WebServlet (loadOnStartup = 1)
 public class BackendServlet extends HttpServlet {
     private static final Charset UTF_8 = StandardCharsets.UTF_8;
@@ -40,6 +47,10 @@ public class BackendServlet extends HttpServlet {
     private String ext;
 
     private SessionManager manager;
+
+    private SseHub hub;
+
+    private static final ThreadLocal<ServerSideEventImpl> local = new ThreadLocal<> ();
 
     private static final Pattern STATIC_RESOURCES = Pattern.compile (
             "^(.*?)\\.(htm|html|xml|png|jpg|jpeg|gif|js|css|mp3|mp4)$",
@@ -95,12 +106,12 @@ public class BackendServlet extends HttpServlet {
 
                 var type = ApplicationServletRegistration.class;
                 Field field = type.getDeclaredField ("wrapper");
-                ReferenceUtil.checkAccessible (field, base);
+                ReflectHelper.checkAccessible (field, base);
                 StandardWrapper wrapper = (StandardWrapper) field.get (base);
                 defaultServlet = wrapper.getServlet ();
 
                 ServletRegistration jsp = mappings.get ("jsp");
-                ReferenceUtil.checkAccessible (field, jsp);
+                ReflectHelper.checkAccessible (field, jsp);
                 wrapper = (StandardWrapper) field.get (jsp);
                 jspServlet = wrapper.getServlet ();
             } catch (Exception ex) {
@@ -153,8 +164,8 @@ public class BackendServlet extends HttpServlet {
             }
         }
 
-        Map<String, String> values = new HashMap<> ();
         WebHandler handler;
+        Map<String, String> values = new HashMap<> ();
         try {
             handler = scanner.match (pathInfo, method.toLowerCase (), values);
         } catch (ServletException ex) {
@@ -181,9 +192,14 @@ public class BackendServlet extends HttpServlet {
         }
 
         Object bean = context.getBean (handler.beanName);
-        Object value;
+        // @since 3.0.0, sse support
+        if (handler.sse) {
+            handleSSERequest (handler, request, response, bean, values);
+            return;
+        }
 
         HttpContext ctx = null;
+        Object value;
         try {
             request.getSession ().getId ();
             ctx = new HttpContext (request, response);
@@ -289,16 +305,22 @@ public class BackendServlet extends HttpServlet {
             Class<?> type = types [i];
             if (wp == null || wp.internal) {
                 if (type == HttpContext.class) {
+                    checkSSE (handler);
                     args[i] = HttpContext.current ();
                 } else if (type == ServletContext.class) {
+                    checkSSE (handler);
                     args[i] = getServletContext ();
                 } else if (type == HttpServletRequest.class) {
+                    checkSSE (handler);
                     args[i] = request;
                 } else if (type == HttpServletResponse.class) {
+                    checkSSE (handler);
                     args[i] = response;
                 } else if (type == HttpSession.class) {
+                    checkSSE (handler);
                     args[i] = request.getSession ();
                 } else if (type == ManagedSession.class) {
+                    checkSSE (handler);
                     // @since 1.1.1
                     if (session == null) {
                         // session 还未创建，创建一个
@@ -307,8 +329,8 @@ public class BackendServlet extends HttpServlet {
                     }
                     args[i] = session;
                 } else if (type == Part.class) { // 文件上传
-                    // @since 4.0.0
-                    // todo: 实现它
+                    checkSSE (handler);
+                    // @since 3.0.0
                     if (wp == null || StringUtil.isEmpty (wp.name)) {
                         // 未提供名称，通常是因为只上传一个文件
                         Optional<Part> any = request.getParts ().stream ().findAny ();
@@ -323,6 +345,18 @@ public class BackendServlet extends HttpServlet {
                             throw new ServletException ("parameter[" + wp.name + "] needs value, but got null!");
                         }
                     }
+                } else if (IServerSideEvent.class.isAssignableFrom (type)) {
+                    ServerSideEventImpl sse = local.get ();
+                    if (sse == null) {
+                        throw new IllegalArgumentException (
+                        """
+                        A server-side event was expected, but the feature is not supported.
+                        Is the method annotated with @AServerSideEvent?
+                        """
+                        );
+                    }
+                    args[i] = sse;
+                    local.remove ();
                 } else {
                     throw new IllegalArgumentException ("unsupported internal type: " + type);
                 }
@@ -562,5 +596,65 @@ public class BackendServlet extends HttpServlet {
                 urlDecode (body, map);
             }
         }
+    }
+
+    private void checkSSE (WebHandler handler) {
+        if (handler.sse) {
+            throw new IllegalArgumentException (
+                    "jakarta.servlet.http.Part is not supported in sse mode."
+            );
+        }
+    }
+
+    private void handleSSERequest (WebHandler handler,
+                                   HttpServletRequest request, HttpServletResponse response,
+                                   Object bean, Map<String, String> values) throws IOException, ServletException {
+        synchronized (BackendServlet.class) {
+            if (hub == null) {
+                hub = SseHub.instance ();
+                try {
+                    context.register (hub);
+                } catch (Exception ex) {
+                    logger.error (ex.getMessage (), ex);
+                    return;
+                }
+            }
+        }
+
+        ServerSideEventImpl impl = new ServerSideEventImpl ();
+        Set<String> channels = new HashSet<> ();
+        channels.add (impl.uuid);
+        if (isNotEmpty (handler.sseChannels)) {
+            channels.addAll (Set.of (handler.sseChannels));
+        }
+        SseSession session = hub.register (request, response, channels);
+        impl.setHub (hub);
+        impl.setSession (session);
+        // 保存到线程本地，一会解析参数要用
+        local.set (impl);
+
+        Object[] _args = null;
+        if (handler.method.parameters != null) {
+            // 必须要在同一个线程调用
+            _args = parseParameters (request, response, handler, values);
+        }
+        final var args = _args;
+        hub.commit (impl.uuid, () -> {
+            try {
+                if (logger.isTraceEnabled ()) {
+                    logger.trace ("invoking sse task [{}]", impl.uuid);
+                }
+                if (handler.method.parameters == null) {
+                    handler.method.invoke (bean);
+                } else {
+                    handler.method.invoke (bean, args);
+                }
+                if (logger.isTraceEnabled ()) {
+                    logger.trace ("[{}] the sse task complete.", impl.uuid);
+                }
+            } catch (Throwable ex) {
+                logger.error (ex.getMessage (), ex);
+            }
+        });
     }
 }

@@ -7,8 +7,8 @@ import jakarta.annotation.Resources;
 import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ReflectHelper;
 import org.dreamwork.util.JsonHelper;
-import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class WebComponentHelper {
                     }
                 }
                 if (target != null) {
-                    ReferenceUtil.checkAccessible (field, instance);
+                    ReflectHelper.checkAccessible (field, instance);
                     try {
                         field.set (instance, target);
                     } catch (Exception ex) {
@@ -59,7 +59,7 @@ public class WebComponentHelper {
     public static<T> void injectMethod (T instance, Cache c) throws InstantiationException {
         if (!c.methods.isEmpty ()) {
             for (var method : c.methods) {
-                ReferenceUtil.checkAccessible (method, instance);
+                ReflectHelper.checkAccessible (method, instance);
                 int count = method.getParameterCount ();
                 if (count == 1 && method.isAnnotationPresent (Resources.class)) {
                     Resource res = method.getAnnotation (Resource.class);
@@ -135,7 +135,7 @@ public class WebComponentHelper {
                             }
                         }
                         try {
-                            ReferenceUtil.checkAccessible (ao, instance);
+                            ReflectHelper.checkAccessible (ao, instance);
                             if (ao instanceof Field field) {
                                 field.set (instance, target);
                             } else {
@@ -143,6 +143,7 @@ public class WebComponentHelper {
                                 method.invoke (instance, target);
                             }
                         } catch (Exception ex) {
+                            logger.warn (ex.getMessage ());
                             throw new InstantiationException ("cannot inject field: " + ao);
                         }
                     } else if (conf.required ()) {

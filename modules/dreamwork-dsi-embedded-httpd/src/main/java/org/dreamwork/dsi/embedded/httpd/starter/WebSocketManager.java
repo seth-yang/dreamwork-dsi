@@ -10,6 +10,7 @@ import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebSocketExecutor;
 import org.dreamwork.dsi.embedded.httpd.support.websocket.IWebsocketCommand;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.IObjectContext;
+import org.dreamwork.injection.ReflectHelper;
 import org.dreamwork.util.JsonHelper;
 import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
@@ -264,7 +265,7 @@ public class WebSocketManager {
                 Object o = context.getBean (field.getType ());
 
                 try {
-                    ReferenceUtil.checkAccessible (field, socket);
+                    ReflectHelper.checkAccessible (field, socket);
                     field.set (socket, o);
                 } catch (Exception ex) {
                     logger.warn (ex.getMessage (), ex);
@@ -306,7 +307,7 @@ public class WebSocketManager {
                 }
 
                 if (value != null) {
-                    ReferenceUtil.checkAccessible (setter, socket);
+                    ReflectHelper.checkAccessible (setter, socket);
                     try {
                         setter.invoke (socket, value);
                     } catch (IllegalAccessException | InvocationTargetException ex) {

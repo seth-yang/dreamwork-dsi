@@ -6,7 +6,6 @@ import org.dreamwork.config.IConfiguration;
 import org.dreamwork.injection.AConfigured;
 import org.dreamwork.injection.ClassScanner;
 import org.dreamwork.injection.IInjectResolvedProcessor;
-import org.dreamwork.util.ReferenceUtil;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import javax.management.IntrospectionException;
 import java.lang.reflect.Field;
 import java.util.Set;
+
+import static org.dreamwork.injection.ReflectHelper.checkAccessible;
 
 /**
  * 受托管对象的扫描器
@@ -60,7 +61,7 @@ public class ObjectContextScanner extends ClassScanner {
                     exposeName = rt.getSimpleName ();
                     exposeName = Character.toLowerCase (exposeName.charAt (0)) + exposeName.substring (1);
                 }
-                ReferenceUtil.checkAccessible (mw.method, bean);
+                checkAccessible (mw.method, bean);
                 var o = mw.method.invoke (bean);
                 if (o == null) {
                     throw new IntrospectionException ("method " + mw.method + " returns a null object!");

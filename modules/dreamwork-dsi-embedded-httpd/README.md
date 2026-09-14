@@ -10,41 +10,46 @@ the dsi hook of dreamwork simple injection for start an embedded-httpd
 <dependency>
     <groupId>io.github.seth-yang</groupId>
     <artifactId>dreamwork-dsi-embedded-httpd</artifactId>
-    <version>2.1.2</version>
+    <version>3.0.0</version>
 </dependency>
 ```
 ### 内置配置项
 
-| 键名 | 类型 | 默认值 | 版本      | 备注 |
-| --- | --- | --- |---------| -- |
-| `embedded.httpd.context-path` | string | `/` | 1.0.0   | webapp 的根目录 |
-| `embedded.httpd.base` | string | `../webapp` | 1.0.0   | http 服务的根目录 |
-| `embedded.httpd.port` | int | `9090` | 1.0.0 | http 服务的端口 |
-| `embedded.httpd.host` | string | `127.0.0.1` | 1.0.0   | http 服务绑定的服务器地址 |
-| `embedded.httpd.views.extension` | string | `.jsp` | 1.0.0   | 默认视图的扩展名 |
-| `embedded.httpd.api-mapping` | string | `/apis` | 1.0.0   | WebHandler 映射的根目录 |
-| `embedded.httpd.delegate.enabled` | boolean | `false` | 1.0.0   | |
-| `dsi.embedded.httpd.managed.session.enabled` | boolean | `true` | 1.0.0   | 是否启用托管的session |
-| `dsi.embedded.httpd.session.timeout` | long | `1800000` | 1.0.0   | 托管 session 的超时时间，毫秒 |
-| `embedded.httpd.websocket.enabled` | boolean | `true` | 2.1.0   | 是否启用 Websocket 支持 |
+| 键名 | 类型 | 默认值                | 版本      | 备注        |
+| --- | --- |--------------------|---------|-----------|
+| `embedded.httpd.context-path` | string | `/`                | 1.0.0   | webapp 的根目录 |
+| `embedded.httpd.base` | string | `../webapp`        | 1.0.0   | http 服务的根目录 |
+| `embedded.httpd.port` | int | `9090`             | 1.0.0 | http 服务的端口 |
+| `embedded.httpd.host` | string | `127.0.0.1`        | 1.0.0   | http 服务绑定的服务器地址 |
+| `embedded.httpd.views.extension` | string | `.jsp`             | 1.0.0   | 默认视图的扩展名  |
+| `embedded.httpd.api-mapping` | string | `/apis`            | 1.0.0   | WebHandler 映射的根目录 |
+| `embedded.httpd.delegate.enabled` | boolean | `false`            | 1.0.0   |           |
+| `dsi.embedded.httpd.managed.session.enabled` | boolean | `true`             | 1.0.0   | 是否启用托管的session |
+| `dsi.embedded.httpd.session.timeout` | long | `1800000`          | 1.0.0   | 托管 session 的超时时间，毫秒 |
+| `embedded.httpd.websocket.enabled` | boolean | `true`             | 2.1.0   | 是否启用 Websocket 支持 |
+| `embedded.httpd.multipart.location` | string | null               | 3.0.0 |           |
+| `embedded.httpd.multipart.file-size` | int | `33,554,432` (32MiB) | 3.0.0 | 单个文件允许的最大字节数 |
+| `embedded.httpd.multipart.max-file-size` | int | `335,544,320` (320MiB) | 3.0.0 | 总文件允许的最大字节数 |
+| `embedded.httpd.multipart.max-request-size` | int | `838,860,800` (800MiB) | 3.0.0 | 单次请求允许的最大字节数 |
 
 ### 注解列表
-| 名称                                                            | 备注 | 支持的版本 |
-|---------------------------------------------------------------| -- |-------|
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler`    | 批注一个类用于 WebHandler 映射 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebMapping`    | 批注一个方法用于 WebHandler 映射 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebParameter` | 批注一个参数用于 WebHdndler 映射 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket` | 批注一个类作于 WebSocket 映射 | 2.1.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AFormItem` | 批注一个参数来源于 `Query String` 或者 `Web Form` | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AHeaderItem` | 批注一个参数来源于 `Http Header` | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AInternal` | 批注一个参数来源于 `内部类型`，比如常见的 `HttpServletRequest` 之类的内置对象 | 1.0.0 |
+| 名称                                                                      | 备注 | 支持的版本 |
+|-------------------------------------------------------------------------| -- |-------|
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler`              | 批注一个类用于 WebHandler 映射 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebMapping`              | 批注一个方法用于 WebHandler 映射 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebParameter`            | 批注一个参数用于 WebHdndler 映射 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebSocket`               | 批注一个类作于 WebSocket 映射 | 2.1.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AFormItem`                | 批注一个参数来源于 `Query String` 或者 `Web Form` | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AHeaderItem`              | 批注一个参数来源于 `Http Header` | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AInternal`                | 批注一个参数来源于 `内部类型`，比如常见的 `HttpServletRequest` 之类的内置对象 | 1.0.0 |
 | `@org.dreamwork.dsi.embedded.httpd.annotation.AManagedSessionAttribute` | 批注一个参数来源于托管session的缓存 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.APathVariable` | 批注一个参数来源于Path的一部分 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.ARequestAttribute` | 批注一个参数来源于 HttpRequest 属性 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.ARequestBody` | 批注一个参数来源于整个 http payload | 1.0.0 |
-| `!org.dreamwork.dsi.embedded.httpd.annotation.ASessionAttribute` | 批注一个参数来源于 HttpSession 的属性 | 1.0.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages` | 批注在主类上，用于扫描传统 Web 组件，如: `HttpServlet`、`WebFilter` 之类 | 1.1.0 |
-| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebsocketPackages` | 批注在主类上，用于扫描 Websocket 组件 | 2.1.2 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.APathVariable`            | 批注一个参数来源于Path的一部分 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.ARequestAttribute`        | 批注一个参数来源于 HttpRequest 属性 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.ARequestBody`             | 批注一个参数来源于整个 http payload | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.ASessionAttribute`        | 批注一个参数来源于 HttpSession 的属性 | 1.0.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebPackages`             | 批注在主类上，用于扫描传统 Web 组件，如: `HttpServlet`、`WebFilter` 之类 | 1.1.0 |
+| `@org.dreamwork.dsi.embedded.httpd.annotation.AWebsocketPackages`       | 批注在主类上，用于扫描 Websocket 组件 | 2.1.2 |
+| `org.dreamwork.dsi.embedded.httpd.annotation.AServerSideEvent` | 批注一个方法是否用于 `SSE` | 3.0.0 |
 
 ## 托管的 Web 请求处理程序
 

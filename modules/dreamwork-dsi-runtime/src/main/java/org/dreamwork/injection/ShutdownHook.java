@@ -1,13 +1,11 @@
-package org.dreamwork.injection.impl;
+package org.dreamwork.injection;
 
-import org.dreamwork.injection.IObjectContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
