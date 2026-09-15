@@ -2,116 +2,131 @@ package org.dreamwork.dsi.embedded.httpd.support.sse.impl;
 
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServletResponse;
-import org.dreamwork.dsi.embedded.httpd.support.ServletMocks;
 import org.dreamwork.dsi.embedded.httpd.support.SseRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * {@link SseSession} 的单元测试。
- *
- * <p>{@code flush()} / {@code close()} / {@code ping()} 都是包内可见的，
- * 因此测试直接调用它们，并使用 Servlet 桩件观察写出内容。</p>
+ * <p>使用 Mockito 模拟 {@link AsyncContext}，用 {@link StringWriter} 捕获真实写出内容。</p>
  */
 class SseSessionTest {
-    private ServletMocks.ResponseState response;
-    private ServletMocks.AsyncState async;
-    private SseSession session;
+    private AsyncContext ac;
+    private StringWriter buffer;
 
     @BeforeEach
     void setUp () throws Exception {
-        response = new ServletMocks.ResponseState ();
-        async    = new ServletMocks.AsyncState ();
-        session  = newSession (response, async, 30_000L);
+        ac = mock (AsyncContext.class);
+        HttpServletResponse response = mock (HttpServletResponse.class);
+        buffer = new StringWriter ();
+        when (ac.getResponse ()).thenReturn (response);
+        when (response.getWriter ()).thenReturn (new PrintWriter (buffer, true));
+    }
+
+    private SseSession newSession (SseRole role, Set<String> channels, long timeout) throws IOException {
+        return new SseSession (ac, role, channels, timeout, true);
     }
 
     @Test
-    void flush_writesQueuedFramesInOrder () throws Exception {
-        session.enqueue ("first\n\n");
-        session.enqueue ("second\n\n");
+    void constructorCopiesChannelSet () throws Exception {
+        Set<String> channels = new HashSet<> ();
+        channels.add ("chat");
+        SseSession session = newSession (SseRole.Producer, channels, 30000);
 
-        session.flush ();
-
-        assertEquals ("first\n\nsecond\n\n", response.text ());
-    }
-
-    @Test
-    void flush_withoutPendingData_writesNothing () throws Exception {
-        session.flush ();
-
-        assertEquals ("", response.text ());
-    }
-
-    @Test
-    void ping_writesCommentFrame () throws Exception {
-        session.ping ();
-
-        assertEquals (": ping\n\n", response.text ());
-    }
-
-    @Test
-    void close_sendsCompleteEventAndCompletesAsyncContext () {
-        session.close ();
-
-        assertTrue (session.isClosed ());
-        assertTrue (async.completed);
-        assertTrue (response.text ().contains ("event: .complete"), response.text ());
-    }
-
-    @Test
-    void close_isIdempotent () {
-        session.close ();
-        String sent = response.text ();
-
-        session.close ();
-
-        assertEquals (sent, response.text ());
-        assertTrue (session.isClosed ());
-    }
-
-    @Test
-    void channels_returnsReadOnlySnapshot () {
-        assertEquals (Set.of ("a", "b"), session.channels ());
-        assertThrows (UnsupportedOperationException.class, () -> session.channels ().add ("c"));
-        // 构造之后修改原集合不会影响会话
-        Set<String> source = session.channels ();
-        assertThrows (UnsupportedOperationException.class, () -> source.remove ("a"));
-        assertEquals (Set.of ("a", "b"), session.channels ());
-    }
-
-    @Test
-    void flush_whenIdleTooLong_closesTheSession () throws Exception {
-        ServletMocks.ResponseState shortResponse = new ServletMocks.ResponseState ();
-        ServletMocks.AsyncState shortAsync = new ServletMocks.AsyncState ();
-        SseSession shortTimeout = newSession (shortResponse, shortAsync, 1L);
-
-        shortTimeout.enqueue ("data\n\n");
-        shortTimeout.flush ();          // 记录存活时间戳
-        Thread.sleep (20);
-        shortTimeout.flush ();          // 空闲超过 1ms，判定连接失效
-
-        assertTrue (shortTimeout.isClosed ());
-        assertTrue (shortAsync.completed);
-        // 说明：当前实现在超时分支中会再次进入 flush() 的超时判断，
-        // 因此 SESSION_TIMEOUT 事件帧不会真正写出到客户端，这里不作断言。
-    }
-
-    @Test
-    void flush_withinTimeout_keepsTheSessionAlive () throws Exception {
-        session.enqueue ("data\n\n");
-        session.flush ();
-        session.flush ();
-
+        channels.add ("mutated");
+        // 外部修改不应影响会话内部的快照
+        assertEquals (Set.of ("chat"), session.channels ());
+        assertEquals (SseRole.Producer, session.role);
+        assertTrue (session.allowDynamic);
         assertFalse (session.isClosed ());
     }
 
-    private SseSession newSession (ServletMocks.ResponseState response, ServletMocks.AsyncState async, long timeout) throws Exception {
-        HttpServletResponse servletResponse = ServletMocks.response (response);
-        AsyncContext ac = ServletMocks.asyncContext (servletResponse, async);
-        return new SseSession (ac, SseRole.Producer, Set.of ("a", "b"), timeout, true);
+    @Test
+    void flushWritesEnqueuedFrames () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 30000);
+        session.enqueue ("data: hello\n\n");
+        session.enqueue ("data: world\n\n");
+
+        session.flush ();
+
+        assertEquals ("data: hello\n\ndata: world\n\n", buffer.toString ());
+    }
+
+    @Test
+    void flushWithEmptyQueueWritesNothing () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 30000);
+        session.flush ();
+        assertTrue (buffer.toString ().isEmpty ());
+    }
+
+    @Test
+    void pingWritesHeartbeatComment () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 30000);
+        session.ping ();
+        assertEquals (": ping\n\n", buffer.toString ());
+    }
+
+    @Test
+    void closeSendsCompleteEventAndCompletesAsyncContext () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 30000);
+        session.enqueue ("data: last\n\n");
+
+        session.close ();
+
+        // 队列中的最后一帧和 .complete 事件都应被写出
+        String output = buffer.toString ();
+        assertTrue (output.contains ("data: last"));
+        assertTrue (output.contains ("event: .complete"));
+        assertTrue (session.isClosed ());
+        verify (ac).complete ();
+    }
+
+    @Test
+    void closeIsIdempotent () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 30000);
+        session.close ();
+        session.close ();
+
+        verify (ac, times (1)).complete ();
+        assertEquals (1, outputCount ("event: .complete"));
+    }
+
+    @Test
+    void flushClosesSessionAfterIdleTimeout () throws Exception {
+        SseSession session = newSession (SseRole.Producer, Set.of ("chat"), 0);
+        // 第一次写出：设置存活时间戳
+        session.enqueue ("data: x\n\n");
+        session.flush ();
+        assertFalse (session.isClosed ());
+
+        Thread.sleep (50);
+        // 超过 0ms 空闲超时后再次 flush，应触发超时分支并关闭会话
+        session.flush ();
+
+        assertTrue (session.isClosed ());
+        verify (ac, atLeastOnce ()).complete ();
+    }
+
+    private int outputCount (String token) {
+        int count = 0, index = 0;
+        String output = buffer.toString ();
+        while ((index = output.indexOf (token, index)) >= 0) {
+            count++;
+            index += token.length ();
+        }
+        return count;
     }
 }

@@ -10,80 +10,68 @@ import static org.junit.jupiter.api.Assertions.*;
 class ManagedSessionTest {
 
     @Test
-    void newSession_hasGeneratedIdAndTimestamp () {
-        ManagedSession session = new ManagedSession ();
-
-        assertNotNull (session.id);
-        assertFalse (session.id.isEmpty ());
-        assertTrue (session.timestamp > 0);
+    void constructorWithKeyKeepsId () {
+        ManagedSession session = new ManagedSession ("fixed-id");
+        assertEquals ("fixed-id", session.id);
     }
 
     @Test
-    void newSession_withExplicitId_keepsIt () {
-        ManagedSession session = new ManagedSession ("custom-id");
-
-        assertEquals ("custom-id", session.id);
+    void defaultConstructorGeneratesUuid () {
+        ManagedSession a = new ManagedSession ();
+        ManagedSession b = new ManagedSession ();
+        assertNotNull (a.id);
+        assertNotEquals (a.id, b.id);
     }
 
     @Test
-    void setAndGet_roundTrip () {
-        ManagedSession session = new ManagedSession ();
-
+    void setAndGetAttribute () {
+        ManagedSession session = new ManagedSession ("s1");
         session.set ("user", "tom");
-
         assertEquals ("tom", session.get ("user"));
-        assertTrue (session.has ("user"));
-        assertEquals ("tom", session.<String>get ("user"));
+
+        Integer count = session.get ("count");
+        assertNull (count);
     }
 
     @Test
-    void setWithNull_removesTheKey () {
-        ManagedSession session = new ManagedSession ();
+    void setNullRemovesAttribute () {
+        ManagedSession session = new ManagedSession ("s1");
         session.set ("user", "tom");
-
         session.set ("user", null);
-
         assertFalse (session.has ("user"));
-        assertNull (session.get ("user"));
     }
 
     @Test
-    void removeDeletesTheKey () {
-        ManagedSession session = new ManagedSession ();
+    void hasAndRemove () {
+        ManagedSession session = new ManagedSession ("s1");
+        assertFalse (session.has ("user"));
         session.set ("user", "tom");
-
+        assertTrue (session.has ("user"));
         session.remove ("user");
-
         assertFalse (session.has ("user"));
     }
 
     @Test
-    void clearRemovesEverything () {
-        ManagedSession session = new ManagedSession ();
+    void clearRemovesAllAttributes () {
+        ManagedSession session = new ManagedSession ("s1");
         session.set ("a", 1);
         session.set ("b", 2);
-
         session.clear ();
-
         assertFalse (session.has ("a"));
         assertFalse (session.has ("b"));
     }
 
     @Test
-    void get_unknownKeyReturnsNull () {
-        ManagedSession session = new ManagedSession ();
+    void accessRefreshesTimestamp () throws Exception {
+        ManagedSession session = new ManagedSession ("s1");
+        long before = session.timestamp;
+        Thread.sleep (20);
+        session.set ("k", "v");
+        assertTrue (session.timestamp >= before + 20);
 
-        assertNull (session.get ("nothing"));
-        assertFalse (session.has ("nothing"));
-    }
-
-    @Test
-    void operations_refreshTimestamp () throws Exception {
-        ManagedSession session = new ManagedSession ("id");
-        session.timestamp = 1L;
-
-        session.set ("key", "value");
-
-        assertTrue (session.timestamp > 1L);
+        long middle = session.timestamp;
+        Thread.sleep (20);
+        session.get ("k");
+        assertTrue (session.timestamp >= middle + 20);
     }
 }
