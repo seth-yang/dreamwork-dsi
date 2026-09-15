@@ -9,7 +9,8 @@
         <version>3.0.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
-
+    <version>${dsi.version}</version>
+    <name>dreamwork-dsi-log4j2-adapter</name>
     <artifactId>dreamwork-dsi-log4j2-adapter</artifactId>
 
     <dependencies>
