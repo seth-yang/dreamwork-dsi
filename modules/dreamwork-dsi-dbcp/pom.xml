@@ -29,5 +29,13 @@
             <artifactId>dreamwork-dsi-runtime</artifactId>
             <version>${dsi.version}</version>
         </dependency>
+
+        <!-- 单元测试使用内存数据库验证连接池的创建 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
