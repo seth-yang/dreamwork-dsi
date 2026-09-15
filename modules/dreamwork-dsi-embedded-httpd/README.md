@@ -13,6 +13,12 @@ the dsi hook of dreamwork simple injection for start an embedded-httpd
     <version>3.0.0</version>
 </dependency>
 ```
+
+### JDK 17+ 注意事项
+`dreamwork-dis` 引用了 [dreamwork-base v4.0.0](https://github.com/seth-yang/dreamwork-base)，而 dreamwork-base v4.0.0 
+已经升级到 JDK 17，并且是一个命名模块。 dreamwork-dis v3.0.0 也升级到 JDK 17，且也是命名模块，因而，若您的应用代码也位于命名模块内，
+需要开放被注入的字段/属性/方法 给模块 `org.dreamwork.dsi.runtime` 和/或 `org.dreamwork.dsi.embedded.httpd` 模块
+
 ### 内置配置项
 
 | 键名 | 类型 | 默认值                | 版本      | 备注        |
@@ -345,6 +351,76 @@ public class MyWebFilter extends InjectableFilter {
                 ((HttpServletResponse) resp).sendError (HttpServletResponse.SC_NOT_ACCEPTABLE);
             }
         }
+    }
+}
+```
+
+## SSE 支持
+从 V3.0.0 开始，`dreamwork-dsi-embedded-httpd` 内置支持 SSE，您只需要在标注 `@AWebMapping` 的接口上额外添加标注 `@AServerSideEvent`，
+就能让这个方法变为一个 `SSE` 接口。一个 `SSE` 接口有以下特点：
+- `SSE` 接口通常声明为<strong>无返回值</strong>。即便您的接口声明为有返回值，且执行完后返回一个 `non-null` 结果，
+  `dreamwork-dsi-embedded-httpd` 也会将这个结果抛弃，而不会返回给客户端
+- `SSE` 接口只能是 `HTTP GET` 方法，其他 HTTP Method 将会收到一个 `405 Method Not Supported` 错误
+- `SSE` 接口可以最多声明一个类型为 `org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent` 的参数，用于向客户端推送数据
+- `SSE` 接口可以在 `Generator`（默认） 和 `Subscriber` 两种角色中选择一个
+- `SSE` 接口支持多播
+
+### 单播 SSE 示例
+
+```java
+import jakarta.annotation.Resource;
+import org.dreamwork.config.IConfiguration;
+import org.dreamwork.dsi.embedded.httpd.annotation.AFormItem;
+import org.dreamwork.dsi.embedded.httpd.annotation.AServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler;
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebMapping;
+import org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseFrame;
+import org.dreamwork.util.StringUtil;
+import org.dreamwork.util.ThreadHelper;
+
+import java.util.Map;
+
+@Resource
+@AWebHandler ("/sse")
+public class MyFirstSSEHandler {
+    @Resource
+    private IConfiguration conf;    // 可以像一个普通的 WebHandler 一样注入托管对象
+
+    @AWebMapping ("/progress-test")
+    @AServerSideEvent
+    public void showProgress (@AFormItem (name = "max", defaultValue = "100") Integer max,
+                              IServerSideEvent sse) {
+        var builder = new SseFrame.Builder ();
+        // 发送起始帧
+        var frame = builder.id (StringUtil.uuid ()).event ("start")
+                .json (true).data (Map.of ("total", max)).build ();
+        sse.send (frame);
+        // 模拟进度推送
+        for (int i = 0; i < max; i++) {
+            frame = builder.id (StringUtil.uuid ()).event ("progress")
+                    .json (true).data (Map.of ("progress", i + 1)).build ();
+            sse.send (frame);
+            ThreadHelper.delay (500); // 模拟耗时操作
+        }
+        // 发送业务层的结束包
+        // 框架其实是会发送一个框架层的 ".complete" 事件，用于表达 SSE 推送结束
+        sse.send (
+                // SseFrame.Builder 不是单例。这里没有 data，故而需要重修 new
+                // 或者使用 build.data (null) 删除 data 字段
+                new SseFrame.Builder ().id (StringUtil.uuid ())
+                        .event ("complete").build ()
+        );
+
+        // 关闭 SSE
+        sse.close ();
+    }
+
+    @AWebMapping ("/multicast-test")
+    @AServerSideEvent ({"global", "channel-1"})
+    public void multicastTest (IServerSideEvent event) {
+        // 模拟一次多播，频道有 @AServerSideEvent 的 channels/values 指定
+        
     }
 }
 ```

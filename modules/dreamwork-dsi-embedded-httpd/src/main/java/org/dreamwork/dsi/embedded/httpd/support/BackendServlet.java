@@ -5,9 +5,11 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import org.apache.catalina.core.ApplicationServletRegistration;
 import org.apache.catalina.core.StandardWrapper;
+import org.dreamwork.config.IConfiguration;
 import org.dreamwork.dsi.embedded.httpd.starter.SessionManager;
 import org.dreamwork.dsi.embedded.httpd.starter.WebHandlerScanner;
 import org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.support.sse.NoAvailableException;
 import org.dreamwork.dsi.embedded.httpd.support.sse.impl.ServerSideEventImpl;
 import org.dreamwork.dsi.embedded.httpd.support.sse.impl.SseHub;
 import org.dreamwork.dsi.embedded.httpd.support.sse.impl.SseSession;
@@ -305,22 +307,22 @@ public class BackendServlet extends HttpServlet {
             Class<?> type = types [i];
             if (wp == null || wp.internal) {
                 if (type == HttpContext.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, HttpContext.class);
                     args[i] = HttpContext.current ();
                 } else if (type == ServletContext.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, ServletContext.class);
                     args[i] = getServletContext ();
                 } else if (type == HttpServletRequest.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, HttpServletRequest.class);
                     args[i] = request;
                 } else if (type == HttpServletResponse.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, HttpServletResponse.class);
                     args[i] = response;
                 } else if (type == HttpSession.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, HttpSession.class);
                     args[i] = request.getSession ();
                 } else if (type == ManagedSession.class) {
-                    checkSSE (handler);
+                    checkSSE (handler, ManagedSession.class);
                     // @since 1.1.1
                     if (session == null) {
                         // session 还未创建，创建一个
@@ -329,7 +331,7 @@ public class BackendServlet extends HttpServlet {
                     }
                     args[i] = session;
                 } else if (type == Part.class) { // 文件上传
-                    checkSSE (handler);
+                    checkSSE (handler, Part.class);
                     // @since 3.0.0
                     if (wp == null || StringUtil.isEmpty (wp.name)) {
                         // 未提供名称，通常是因为只上传一个文件
@@ -598,10 +600,10 @@ public class BackendServlet extends HttpServlet {
         }
     }
 
-    private void checkSSE (WebHandler handler) {
+    private void checkSSE (WebHandler handler, Class<?> type) {
         if (handler.sse) {
             throw new IllegalArgumentException (
-                    "jakarta.servlet.http.Part is not supported in sse mode."
+                    type.getCanonicalName () + " is not supported in sse mode."
             );
         }
     }
@@ -613,6 +615,9 @@ public class BackendServlet extends HttpServlet {
             if (hub == null) {
                 hub = SseHub.instance ();
                 try {
+                    var conf = context.getBean (IConfiguration.class);
+                    long timeout = conf.getLong ("dsi.embedded.httpd.sse.timeout", 30000);
+                    hub.setTimeout (timeout);
                     context.register (hub);
                 } catch (Exception ex) {
                     logger.error (ex.getMessage (), ex);
@@ -621,17 +626,33 @@ public class BackendServlet extends HttpServlet {
             }
         }
 
+        var role = handler.method.sseRole;
+
         ServerSideEventImpl impl = new ServerSideEventImpl ();
         Set<String> channels = new HashSet<> ();
         channels.add (impl.uuid);
         if (isNotEmpty (handler.sseChannels)) {
             channels.addAll (Set.of (handler.sseChannels));
         }
-        SseSession session = hub.register (request, response, channels);
-        impl.setHub (hub);
-        impl.setSession (session);
-        // 保存到线程本地，一会解析参数要用
-        local.set (impl);
+
+        try {
+            SseSession session = hub.register (
+                    request, response, role, channels,
+                    handler.method.sseDynamic, handler.method.sseTimeout
+            );
+            if (session == null) {
+                // 注册sse失败了，最大的可能是没有可加入的通道
+                logger.warn ("there's no channel can be joined, finish this request");
+                logger.warn ("role = {}, channels = {}", role, channels);
+                return;
+            }
+            impl.setHub (hub);
+            impl.setSession (session);
+            // 保存到线程本地，一会解析参数要用
+            local.set (impl);
+        } catch (NoAvailableException ex) {
+            logger.warn (ex.getMessage (), ex);
+        }
 
         Object[] _args = null;
         if (handler.method.parameters != null) {

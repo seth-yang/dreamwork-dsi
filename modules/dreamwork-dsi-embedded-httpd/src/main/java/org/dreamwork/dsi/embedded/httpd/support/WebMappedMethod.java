@@ -32,6 +32,8 @@ public class WebMappedMethod {
     public boolean sseSupported;
     public String[] sseChannels;
     public SseRole sseRole;
+    public boolean sseDynamic;
+    public long sseTimeout = -1;
 
     public WebMappedMethod (Method method, String pattern, HandlerType type) {
         this.method  = method;
@@ -55,7 +57,9 @@ public class WebMappedMethod {
         if (asse != null) {
             sseSupported = true;
             sseRole = asse.role ();
-            sseChannels  = asse.value ();
+            sseChannels = asse.value ();
+            sseDynamic = asse.allowDynamicAttachment ();
+            sseTimeout = asse.timeout ();
             if (CollectionHelper.isEmpty (sseChannels)) {
                 sseChannels = asse.channels ();
             }

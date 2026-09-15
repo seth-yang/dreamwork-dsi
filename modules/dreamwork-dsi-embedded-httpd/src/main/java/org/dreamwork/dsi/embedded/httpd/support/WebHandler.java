@@ -10,6 +10,8 @@ public class WebHandler {
     public boolean sse;
     public String[] sseChannels;
     public SseRole sseRole;
+    public boolean sseDynamic;
+    public long sseTimeout = -1;
 
     public WebHandler (String beanName, WebMappedMethod method) {
         this.beanName = beanName;
@@ -18,6 +20,8 @@ public class WebHandler {
         this.wrapped  = method.wrapped;
         this.sse      = method.sseSupported;
         this.sseRole  = method.sseRole;
+        this.sseDynamic = method.sseDynamic;
         this.sseChannels = method.sseChannels;
+        this.sseTimeout  = method.sseTimeout;
     }
 }

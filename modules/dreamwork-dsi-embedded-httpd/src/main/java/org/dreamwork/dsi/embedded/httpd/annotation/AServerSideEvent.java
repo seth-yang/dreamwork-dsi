@@ -11,5 +11,7 @@ import java.lang.annotation.*;
 public @interface AServerSideEvent {
     String[] value () default {};    // alias for channels
     String[] channels () default {};
-    SseRole role () default SseRole.Generator;
+    SseRole role () default SseRole.Producer;
+    boolean allowDynamicAttachment () default false;
+    long timeout () default -1;
 }
