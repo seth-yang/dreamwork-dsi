@@ -1,4 +1,4 @@
-package org.dreamwork.dsi.embedded.httpd.support;
+package org.dreamwork.dsi.embedded.httpd.support.sse;
 
 public enum SseRole {
     /** SSE 任务数据的生产者 **/

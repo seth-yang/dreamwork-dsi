@@ -6,7 +6,7 @@ import jakarta.servlet.AsyncContext;
 import jakarta.servlet.AsyncEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.dreamwork.dsi.embedded.httpd.support.SseRole;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;
 import org.dreamwork.dsi.embedded.httpd.support.sse.NoAvailableException;
 import org.dreamwork.dsi.embedded.httpd.support.sse.SseFrame;
 import org.dreamwork.util.DateUtil;

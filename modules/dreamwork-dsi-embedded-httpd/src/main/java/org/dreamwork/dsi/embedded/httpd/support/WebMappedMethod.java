@@ -1,7 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
 import org.dreamwork.dsi.embedded.httpd.annotation.*;
-import org.dreamwork.util.CollectionHelper;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;import org.dreamwork.util.CollectionHelper;
 import org.dreamwork.util.StringUtil;
 
 import java.lang.annotation.Annotation;

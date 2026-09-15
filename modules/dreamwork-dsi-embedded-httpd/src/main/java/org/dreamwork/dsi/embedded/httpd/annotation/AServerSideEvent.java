@@ -1,6 +1,6 @@
 package org.dreamwork.dsi.embedded.httpd.annotation;
 
-import org.dreamwork.dsi.embedded.httpd.support.SseRole;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;
 
 import java.lang.annotation.*;
 

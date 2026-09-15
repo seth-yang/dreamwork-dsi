@@ -1,6 +1,6 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
-public class WebHandler {
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;public class WebHandler {
     public String beanName;
     public WebMappedMethod method;
     public HandlerType type;

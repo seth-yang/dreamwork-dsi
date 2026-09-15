@@ -2,7 +2,7 @@ package org.dreamwork.dsi.embedded.httpd.support.sse.impl;
 
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServletResponse;
-import org.dreamwork.dsi.embedded.httpd.support.SseRole;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

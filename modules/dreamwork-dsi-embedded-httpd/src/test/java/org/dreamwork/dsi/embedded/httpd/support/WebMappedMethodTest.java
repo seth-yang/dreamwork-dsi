@@ -1,7 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.support;
 
 import org.dreamwork.dsi.embedded.httpd.annotation.*;
-import org.junit.jupiter.api.Test;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

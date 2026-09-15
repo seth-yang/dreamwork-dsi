@@ -1,7 +1,7 @@
 package org.dreamwork.dsi.embedded.httpd.support.sse.impl;
 
 import jakarta.servlet.AsyncContext;
-import org.dreamwork.dsi.embedded.httpd.support.SseRole;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;
 import org.dreamwork.dsi.embedded.httpd.support.sse.SseFrame;
 import org.dreamwork.util.StringUtil;
 import org.slf4j.Logger;
