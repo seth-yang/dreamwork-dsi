@@ -362,7 +362,7 @@ public class MyWebFilter extends InjectableFilter {
   `dreamwork-dsi-embedded-httpd` 也会将这个结果抛弃，而不会返回给客户端
 - `SSE` 接口只能是 `HTTP GET` 方法，其他 HTTP Method 将会收到一个 `405 Method Not Supported` 错误
 - `SSE` 接口可以最多声明一个类型为 `org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent` 的参数，用于向客户端推送数据
-- `SSE` 接口可以在 `Generator`（默认） 和 `Subscriber` 两种角色中选择一个
+- `SSE` 接口可以在 `Producer`（默认） 和 `Subscriber` 两种角色中选择一个
 - `SSE` 接口支持多播
 
 ### 单播 SSE 示例
@@ -418,10 +418,126 @@ public class MyFirstSSEHandler {
 
     @AWebMapping ("/multicast-test")
     @AServerSideEvent ({"global", "channel-1"})
-    public void multicastTest (IServerSideEvent event) {
+    public void multicastTest (IServerSideEvent sse) {
         // 模拟一次多播，频道有 @AServerSideEvent 的 channels/values 指定
-        
+        var frame = new SseFrame.Builder ()
+                .id (StringUtil.uuid ())
+                .event ("some-event")
+                .json (true)
+                .data ("some-data")
+                .build ();
+        // 向 global 频道推送
+        sse.send ("global", frame);
+        // 向 channel-1 频道推送
+        sse.send ("channel-1", frame);
+        sse.close ();
     }
+}
+```
+客户端代码
+```javascript
+const data = {};
+const sse = new EventSource ('/sse/progress-test');
+sse.addEventListener ('start', e => {
+    if (typeof e.data === 'string') {
+        data.total = JSON.parse (e.data).total;
+    }
+});
+sse.addEventListener ('progress', e => {
+    if (typeof e.data === 'string') {
+        data.progress = JSON.parse (e.data).progress;
+        // call_update_ui_function ();
+    }
+});
+sse.addEventListener ('.complete', e => {
+    sse.close ();
+});
+sse.addEventListener ('error', e => {
+    console.error (e);
+    sse.close ();
+});
+```
+
+
+以上两个示例都是作为 `Producer`。框架还支持一个标注`@AServerSideEvent`的方法作为纯消费者
+
+```java
+import jakarta.annotation.Resource;
+import org.dreamwork.dsi.embedded.httpd.annotation.AFormItem;
+import org.dreamwork.dsi.embedded.httpd.annotation.AServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebHandler;
+import org.dreamwork.dsi.embedded.httpd.annotation.AWebMapping;
+import org.dreamwork.dsi.embedded.httpd.support.sse.SseRole;
+import org.dreamwork.dsi.embedded.httpd.support.sse.IServerSideEvent;
+import org.dreamwork.dsi.embedded.httpd.support.sse.NoAvailableException;
+import org.dreamwork.util.StringUtil;import org.slf4j.Logger;import org.slf4j.LoggerFactory;
+
+@Resource
+@AWebHandler ("/sse")
+public class SseAsSubscriber {
+    private final Logger logger = LoggerFactory.getLogger (SseAsSubscriber.class);
+    
+    // 静态地订阅一个现有频道
+    // 若订阅的频道不存在，将立即拒绝这个频道
+    @AWebMapping ("/static-channel")
+    @AServerSideEvent (role = SseRole.Subscriber, channel = "global")
+    public void staticChannelTest () {}
+    
+    // 动态地附着到一个频道
+    // 若要动态附着到一个频道，必须开启 allowDynamicAttachment，否则，若目标频道不存在时，该请求将被拒绝
+    @AWebMapping ("/parametric")
+    @AServerSideEvent (role = SseRole.Subscriber, allowDynamicAttachment = true, timeout = 10_000L)
+    public void parametricChannelTest (@AFormItem ("channel") String channel, IServerSideEvent sse) {
+        if (StringUtil.isNotEmpty (channel)) {
+            try {
+                sse.attach (channel.trim ());
+            } catch (NoAvailableException ex) {
+                logger.warn (ex.getMessage (), ex);
+                sse.closeWithError (ex);
+            }
+        }
+    }    
+}
+```
+
+需要注意的是：
+- 一个频道由一个或多个 `Producer` 创建
+- **一个<strong>静态的</strong>，扮演<strong>`订阅者`</strong>的SSE接口不允许独立存在。**
+- 一个`订阅者`可以通过开启 `allowDynamicAttachment` 来提前订阅一个频道，最多等待 `timeout` 毫秒
+- 框架在一个 `SSE` 任务完成后，默认会向客户端发送 `.complete` 事件；用户代码也可以自定义一个结束事件
+- 一个 `SSE` 任务完成时，必须调用 `IServerSideEvent.close ()` 来明确的关闭这次 `SSE` 通道
+
+客户端代码：
+```javascript
+const static_sse = new EventSource ('/sse/static-channel'); // 根据服务器端代码，静态附着到 global 频道
+static_sse.addEventListener ('error', e => {
+    if (typeof e.data === 'string') {
+        const error = JSON.parse (e.data);
+        if (error.code === 'NO_AVAILABLE_CHANNEL') {
+            // 服务器端没有可附着的频道，可能是 global 频道尚未创建，或已经关闭了
+            console.error ('无法附着到 global 频道');
+        }
+    }
+    static_sse.close ();
+});
+...
+
+// 模拟一个定于频道的函数
+// 动态的附着到一个指定的频道上；若该请求到达服务器端时，这个指定的频道还不存在，将进行等待
+// 当超过服务器端指定的 timeout 毫秒后仍未检查到这个通道，客户端将会接收到一个 SESSION_TIMEOUT 的错误事件
+function subscribe (channel) {
+    const dynamic_sse = new EventSource (`/sse/parametric?channel=${channel}`);
+    dynamic_sse.addEventListener ('error', e => {
+        if (typeof e.data === 'string') {
+            const error = JSON.parse (e.data);
+            if (error.code === 'SESSION_TIMEOUT') {
+                // 服务器端等待附着到指定频道超时
+                console.error (`附着到${channel}超时`);
+                dynamic_sse.close ();
+            }
+        }
+    });
+    ...
 }
 ```
 
