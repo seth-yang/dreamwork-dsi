@@ -6,8 +6,10 @@ dreamwork simple injection framework 提供一个受托管容器的简单实现�
 <dependency>
     <groupId>io.github.seth-yang</groupId>
     <artifactId>dreamwork-dsi-parent</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
 </dependency>
 ```
+
+**3.0.0版本要求 Java 17或以上版本**
 
 简单的入门使用请参阅 [dreamwork-dsi-runtime](modules/dreamwork-dsi-runtime/README.md)

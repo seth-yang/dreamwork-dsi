@@ -7,10 +7,10 @@
 <dependency>
     <groupId>io.github.seth-yang</groupId>
     <artifactId>dreamwork-dsi-runtime</artifactId>
-    <version>2.1.2</version>
+    <version>3.0.0</version>
 </dependency>
 ```
-
+**3.0.0版本要求Java 17或以上版本**
 ## 介绍
 
 dreamwork-simple-injection 提供一个受托管容器的简单实现。可用于低资源环境的应用程序开发 (如：系统内存 <= 256MB )。
