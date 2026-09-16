@@ -11,6 +11,10 @@
 </dependency>
 ```
 **3.0.0版本要求Java 17或以上版本**
+
+对于**命名模块**，注意将需要托管的包/类开放给
+1. dreamwork-base
+2. org.dreamwork.dsi.runtime
 ## 介绍
 
 dreamwork-simple-injection 提供一个受托管容器的简单实现。可用于低资源环境的应用程序开发 (如：系统内存 <= 256MB )。

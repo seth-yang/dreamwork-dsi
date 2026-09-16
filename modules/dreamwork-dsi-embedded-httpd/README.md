@@ -15,8 +15,8 @@ the dsi hook of dreamwork simple injection for start an embedded-httpd
 ```
 
 ### JDK 17+ 注意事项
-`dreamwork-dis` 引用了 [dreamwork-base v4.0.0](https://github.com/seth-yang/dreamwork-base)，而 dreamwork-base v4.0.0 
-已经升级到 JDK 17，并且是一个命名模块。 dreamwork-dis v3.0.0 也升级到 JDK 17，且也是命名模块，因而，若您的应用代码也位于命名模块内，
+`dreamwork-dsi` 引用了 [dreamwork-base v4.0.0](https://github.com/seth-yang/dreamwork-base)，而 dreamwork-base v4.0.0 
+已经升级到 JDK 17，并且是一个命名模块。 dreamwork-dsi v3.0.0 也升级到 JDK 17，且也是命名模块，因而，若您的应用代码也位于命名模块内，
 需要开放被注入的字段/属性/方法 给模块 `org.dreamwork.dsi.runtime` 和/或 `org.dreamwork.dsi.embedded.httpd` 模块
 
 ### 内置配置项
@@ -133,16 +133,17 @@ public class MyWSCommand implements IWebsocketCommand {
 public abstract class AbstractWebSocket<T extends IWebsocketCommand>
         extends Endpoint
         implements IWebSocketExecutor<T>, MessageHandler.Whole<String> {
-    
+
     protected abstract String cast (T message);
-    
+
     protected abstract T parse (String text);
 
     public abstract boolean matches (String id, T message);
-    
+
     public abstract void handleMessage (T message);
 
     public final void send (T message) { /* ... */ }
+}
 ```
 由于框架采取的用 String 来进行 Websocket 数据传输，您必须在实现类中处理 IWebsocketCommand 和 String 之间的相互转换，方法:
 - `protected abstract String cast (T message)` 用来将 IWebsocketCommand 序列化成 String
